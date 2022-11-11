@@ -6,9 +6,13 @@ import kotlin.math.ln
 import kotlin.math.sqrt
 import kotlin.system.exitProcess
 
-fun zaremba(n: Int): Double {
+/**
+ * Compute z(n) and tau(n), returned as a pair.
+ */
+fun zarembaAndTau(n: Int): Pair<Double, Int> {
     val divisorLimit = ceil(sqrt(n.toFloat())).toInt() + 1 // safety margin for floats...
     var sum = 0.0
+    var divisorCount = 0
 
     for (smallerDivisor in 1 .. divisorLimit) {
         if (n.mod(smallerDivisor) != 0)
@@ -23,12 +27,12 @@ fun zaremba(n: Int): Double {
         }
 
         sum += ln(smallerDivisor.toFloat()) / smallerDivisor
-//        println("  $n / $smallerDivisor")
+        divisorCount++
 
         when {
             largerDivisor > smallerDivisor -> {
                 sum += ln(largerDivisor.toFloat()) / largerDivisor
-//                println("  ...and $n / $largerDivisor")
+                divisorCount++
             }
             else -> {
                 // We've either reached the sqrt mark exactly (n is a perfect
@@ -39,25 +43,60 @@ fun zaremba(n: Int): Double {
         }
     }
 
-    return sum
+    return sum to divisorCount
+}
+
+fun doSingle(n: Int) {
+    val (z, tau) = zarembaAndTau(n)
+    val ratio = z / ln(tau.toFloat())
+    println("z($n) = $z\ttau($n) = $tau\tz($n)/ln(tau($n)) = $ratio")
+}
+
+fun doRecords(maxN: Int) {
+    var recordZ = 0.0
+    var recordRatio = 0.0
+    for (n in 1..maxN) {
+        val (z, tau) = zarembaAndTau(n)
+        val ratio = z / ln(tau.toFloat())
+
+        val isRecordZ = recordZ > 0 && z > recordZ
+        val isRecordRatio = recordRatio > 0 && ratio > recordRatio
+
+        val recordType = when {
+            isRecordZ && isRecordRatio -> "both"
+            isRecordZ && !isRecordRatio -> "z"
+            !isRecordZ && isRecordRatio -> "ratio"
+            else -> null
+        }
+        if (recordType != null) {
+            println("$n\trecord=$recordType\tz($n) = $z\ttau($n) = $tau\tz($n)/ln(tau($n)) = $ratio")
+        }
+
+        recordZ = max(z, recordZ)
+        recordRatio = if (ratio.isNaN()) { // NaN for n = 1...
+            recordRatio
+        } else {
+            max(ratio, recordRatio)
+        }
+    }
+}
+
+fun dieWithUsage() {
+    println("""
+      Usage:
+        ./zaremba single [n]
+        ./zaremba records [max-n]
+    """.trimIndent())
+    exitProcess(1)
 }
 
 fun main(args: Array<String>) {
-    if (args.size != 1) {
-        print("ERROR: Wrong number of args. Arguments: max-n")
-        exitProcess(1)
-    }
+    if (args.size != 2)
+        dieWithUsage()
 
-    val maxN = args[0].toInt()
-    var record = 0.0
-    for (n in 1..maxN) {
-        val out = zaremba(n)
-        val isRecord = record > 0 && out > record
-//        val annotation = if (isRecord) " [RECORD]" else ""
-//        println("$n: $out$annotation")
-        if (isRecord) {
-            println("RECORD: z($n) = $out")
-        }
-        record = max(out, record)
+    when (args[0]) {
+        "single" -> doSingle(args[1].toInt())
+        "records" -> doRecords(args[1].toInt())
+        else -> dieWithUsage()
     }
 }
