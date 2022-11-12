@@ -1,44 +1,35 @@
 use std::env;
 use std::process;
+use divisors;
 
-fn zaremba_tau(n: i64) -> (f64, i32) {
-    // Safety margin for floats, because I don't want to think if it's even needed...
-    let divisor_limit = (n as f64).sqrt() as i64 + 1;
+fn zaremba_tau(n: u64) -> (f64, usize) {
+    let mut divisors = divisors::get_divisors(n);
 
-    let mut sum = 0_f64;
-    let mut divisor_count = 0_i32;
-
-    for smaller_divisor in 1..(divisor_limit+1) {
-        if n % smaller_divisor != 0 {
-            continue // not actually a divisor!
-        }
-
-        let larger_divisor = n / smaller_divisor;
-        if larger_divisor < smaller_divisor {
-            // We've *passed* the geometric midpoint, and should not include
-            // either value. Could be redundant with divisorLimit but that one
-            // is padded a little for safety. This check is more precise.
-            break
-        }
-
-        sum += (smaller_divisor as f64).ln() / (smaller_divisor as f64);
-        divisor_count += 1;
-
-        if larger_divisor > smaller_divisor {
-            sum += (larger_divisor as f64).ln() / (larger_divisor as f64);
-            divisor_count += 1;
-        } else {
-            // We've either reached the sqrt mark exactly (n is a perfect
-            // square) and need to stop -- use the small divisor but not the
-            // larger one, since that would be overcounting.
-            break
-        }
+    // The divisors crate usually doesn't include 1 or n in the
+    // divisors, except for get_divisors(2) == [2]. But the output is
+    // sorted, so we can add 1 and n after peeking at the start and
+    // end.
+    //
+    // Look at the high end first because that's where we're going to
+    // shove any new values.
+    if divisors.len() == 0 || divisors[divisors.len()-1] != n {
+        divisors.push(n)
     }
+    if divisors.len() == 0 || divisors[0] != 1 {
+        divisors.push(1)
+    }
+    // It's not sorted anymore, but that's OK.
 
-    (sum, divisor_count)
+    let tau = divisors.len();
+    let mut z = 0_f64;
+    for d in divisors {
+        let df = d as f64;
+        z += df.ln() / df;
+    }
+    (z, tau)
 }
 
-fn do_single(n: i64) {
+fn do_single(n: u64) {
     let (z, tau) = zaremba_tau(n);
     let ratio = z / (tau as f64).ln();
     println!(
@@ -47,7 +38,7 @@ fn do_single(n: i64) {
     )
 }
 
-fn do_records(max_n: i64) {
+fn do_records(max_n: u64) {
     let mut record_z = 0.0;
     let mut record_ratio = 0.0;
     for n in 1..max_n {
@@ -90,8 +81,8 @@ fn main() {
     }
 
     match args[1].as_str() {
-        "single" => do_single(args[2].parse::<i64>().unwrap()),
-        "records" => do_records(args[2].parse::<i64>().unwrap()),
+        "single" => do_single(args[2].parse::<u64>().unwrap()),
+        "records" => do_records(args[2].parse::<u64>().unwrap()),
         _ => {
             println!("Did not understand command: {}", args[1]);
             die_with_usage();
