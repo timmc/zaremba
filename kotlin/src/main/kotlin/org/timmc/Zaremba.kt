@@ -10,7 +10,7 @@ import kotlin.system.exitProcess
  * Compute z(n) and tau(n), returned as a pair.
  */
 fun zarembaAndTau(n: Int): Pair<Double, Int> {
-    val divisorLimit = ceil(sqrt(n.toFloat())).toInt() + 1 // safety margin for floats...
+    val divisorLimit = ceil(sqrt(n.toDouble())).toInt() + 1 // safety margin for Doubles...
     var sum = 0.0
     var divisorCount = 0
 
@@ -26,12 +26,12 @@ fun zarembaAndTau(n: Int): Pair<Double, Int> {
             break
         }
 
-        sum += ln(smallerDivisor.toFloat()) / smallerDivisor
+        sum += ln(smallerDivisor.toDouble()) / smallerDivisor
         divisorCount++
 
         when {
             largerDivisor > smallerDivisor -> {
-                sum += ln(largerDivisor.toFloat()) / largerDivisor
+                sum += ln(largerDivisor.toDouble()) / largerDivisor
                 divisorCount++
             }
             else -> {
@@ -48,7 +48,7 @@ fun zarembaAndTau(n: Int): Pair<Double, Int> {
 
 fun doSingle(n: Int) {
     val (z, tau) = zarembaAndTau(n)
-    val ratio = z / ln(tau.toFloat())
+    val ratio = z / ln(tau.toDouble())
     println("z($n) = $z\ttau($n) = $tau\tz($n)/ln(tau($n)) = $ratio")
 }
 
@@ -57,7 +57,7 @@ fun doRecords(maxN: Int) {
     var recordRatio = 0.0
     for (n in 1..maxN) {
         val (z, tau) = zarembaAndTau(n)
-        val ratio = z / ln(tau.toFloat())
+        val ratio = z / ln(tau.toDouble())
 
         val isRecordZ = recordZ > 0 && z > recordZ
         val isRecordRatio = recordRatio > 0 && ratio > recordRatio
