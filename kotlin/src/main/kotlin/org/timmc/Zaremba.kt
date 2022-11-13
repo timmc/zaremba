@@ -228,11 +228,22 @@ fun doRecords(maxN: Long) {
     }
 }
 
+fun doFactor(n: Long) {
+    val factorization = factorGeneric(n).toSortedMap()
+    // The sparkline will make the most sense with A025487 numbers...
+    val levels = listOf("̲ ", '▁', '▂', '▃', '▄', '▅', '▆', '▇')
+    val sparkline = factorization.values.joinToString("") {
+        levels[it - 1].toString()
+    }
+    println("Factors: $sparkline ${factorization.map { (k, v) -> "$k^$v" }.joinToString(" * ")}")
+}
+
 fun dieWithUsage() {
     println("""
       Usage:
-        ./zaremba single [n]
-        ./zaremba records [max-n]
+        ./zaremba single <n>
+        ./zaremba records <max-n>
+        ./zaremba factor <n>
     """.trimIndent())
     exitProcess(1)
 }
@@ -244,6 +255,7 @@ fun main(args: Array<String>) {
     when (args[0]) {
         "single" -> doSingle(args[1].toLong())
         "records" -> doRecords(args[1].toLong())
+        "factor" -> doFactor(args[1].toLong())
         else -> dieWithUsage()
     }
 }
