@@ -5,7 +5,7 @@ import kotlin.test.assertEquals
 
 class ZarembaTest {
     @Test
-    fun primesFinderManual() {
+    fun primesFinderTestManual() {
         val primes = PrimesFinder()
         assertEquals(listOf(2), primes.known)
         assertEquals(3, primes.findNextPrime())
@@ -18,7 +18,7 @@ class ZarembaTest {
     }
 
     @Test
-    fun primesFinderIterator() {
+    fun primesFinderTestIterator() {
         val primes = PrimesFinder()
         assertEquals(listOf(2), primes.known)
         assertEquals(3, primes.findNextPrime())
@@ -47,7 +47,14 @@ class ZarembaTest {
     }
 
     @Test
-    fun factorA025487() {
+    fun factorGenericTest() {
+        assertEquals(emptyMap(), factorGeneric(1))
+        assertEquals(mapOf(7 to 1), factorGeneric(7))
+        assertEquals(mapOf(3 to 1, 7 to 2), factorGeneric(147))
+    }
+
+    @Test
+    fun factorA025487Test() {
         // Edge case
         assertEquals(emptyMap(), factorA025487(1))
         assertEquals(mapOf(2 to 1), factorA025487(2))
@@ -69,7 +76,7 @@ class ZarembaTest {
     }
 
     @Test
-    fun cartesianProduct() {
+    fun cartesianProductTest() {
         // Base case: No iterables
         assertEquals(emptySet(), emptyList<List<Int>>().getCartesianProduct())
 
@@ -89,5 +96,11 @@ class ZarembaTest {
             ),
             listOf(listOf(1, 2, 4), listOf(1, 3), listOf(1, 5)).getCartesianProduct()
         )
+    }
+
+    @Test
+    fun stepSizeAfterRecordZTest() {
+        val z360 = zarembaAndTau(360).first
+        assertEquals(30, stepSizeAfterRecordZ(z360))
     }
 }
