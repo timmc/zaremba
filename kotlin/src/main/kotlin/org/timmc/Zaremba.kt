@@ -1,6 +1,7 @@
 package org.timmc
 
 import java.lang.AssertionError
+import java.math.BigInteger
 import kotlin.math.ln
 import kotlin.math.max
 import kotlin.system.exitProcess
@@ -56,15 +57,16 @@ val primes = PrimesFinder()
  * @return a map of prime factors to their counts, or null if [assertA025487]
  *   was true but condition was violated
  */
-fun factor(n: Long, assertA025487: Boolean = false): Map<Long, Int>? {
+fun factor(n: BigInteger, assertA025487: Boolean = false): Map<Long, Int>? {
     var previousPrimeRepeat = Int.MAX_VALUE
     var remainder = n
     val factors = mutableMapOf<Long, Int>()
     for (prime in primes.iterator()) {
         // Keep dividing n by prime until we can't
         var repeats = 0
-        while (remainder % prime == 0L) {
-            remainder = remainder.div(prime)
+        val primeBig = prime.toBigInteger()
+        while (remainder % primeBig == BigInteger.ZERO) {
+            remainder = remainder.div(primeBig)
             repeats++
         }
 
@@ -74,7 +76,7 @@ fun factor(n: Long, assertA025487: Boolean = false): Map<Long, Int>? {
         }
 
         if (repeats == 0) {
-            if (remainder == 1L) {
+            if (remainder == BigInteger.ONE) {
                 // Done factorizing!
                 break
             } else {
@@ -99,13 +101,13 @@ fun factor(n: Long, assertA025487: Boolean = false): Map<Long, Int>? {
  * Wrapper for [factor] with `assertA025487=false` that knows a null result
  * isn't possible.
  */
-fun factorGeneric(n: Long): Map<Long, Int> =
+fun factorGeneric(n: BigInteger): Map<Long, Int> =
     factor(n, assertA025487 = false)!!
 
 /**
  * Wrapper for [factor] with `assertA025487=true`.
  */
-fun factorA025487(n: Long): Map<Long, Int>? =
+fun factorA025487(n: BigInteger): Map<Long, Int>? =
     factor(n, assertA025487 = true)
 
 /**
@@ -160,7 +162,7 @@ fun zarembaAndTau(primeFactors: Map<Long, Int>): Pair<Double, Int> {
     return z to tau
 }
 
-fun doSingle(n: Long) {
+fun doSingle(n: BigInteger) {
     val (z, tau) = zarembaAndTau(factorGeneric(n))
     val ratio = z / ln(tau.toDouble())
     println("z($n) = $z\ttau($n) = $tau\tz($n)/ln(tau($n)) = $ratio")
@@ -186,13 +188,16 @@ fun stepSizeAfterRecordZ(z: Double): Long {
     throw AssertionError("Ran out of primes")
 }
 
-fun doRecords(maxN: Long) {
-    var n = 1L
+fun doRecords(maxN: BigInteger? = null) {
+    var n = BigInteger.ONE
     var stepSize = 1L
 
     var recordZ = 0.0
     var recordRatio = 0.0
-    while (n <= maxN) {
+    while (true) {
+        if (maxN != null && n > maxN)
+            break
+
         val primeFactors = factorA025487(n)
         if (primeFactors != null) {
             val (z, tau) = zarembaAndTau(primeFactors)
@@ -224,11 +229,11 @@ fun doRecords(maxN: Long) {
                 max(ratio, recordRatio)
             }
         }
-        n += stepSize
+        n += stepSize.toBigInteger()
     }
 }
 
-fun doFactor(n: Long) {
+fun doFactor(n: BigInteger) {
     val factorization = factorGeneric(n).toSortedMap()
     // The sparkline will make the most sense with A025487 numbers...
     val levels = listOf("̲ ", '▁', '▂', '▃', '▄', '▅', '▆', '▇')
@@ -242,20 +247,34 @@ fun dieWithUsage() {
     println("""
       Usage:
         ./zaremba single <n>
-        ./zaremba records <max-n>
+        ./zaremba records [max-n]
         ./zaremba factor <n>
     """.trimIndent())
     exitProcess(1)
 }
 
 fun main(args: Array<String>) {
-    if (args.size != 2)
+    if (args.isEmpty())
         dieWithUsage()
 
     when (args[0]) {
-        "single" -> doSingle(args[1].toLong())
-        "records" -> doRecords(args[1].toLong())
-        "factor" -> doFactor(args[1].toLong())
+        "single" -> {
+            if (args.size != 2)
+                dieWithUsage()
+            doSingle(args[1].toBigInteger())
+        }
+        "records" -> {
+            when (args.size) {
+                1 -> doRecords()
+                2 -> doRecords(maxN = args[1].toBigInteger())
+                else -> dieWithUsage()
+            }
+        }
+        "factor" -> {
+            if (args.size != 2)
+                dieWithUsage()
+            doFactor(args[1].toBigInteger())
+        }
         else -> dieWithUsage()
     }
 }
