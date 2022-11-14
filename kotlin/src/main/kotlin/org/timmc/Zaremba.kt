@@ -112,12 +112,13 @@ fun factorA025487(n: Long): Map<Long, Int>? =
  * Cartesian product of zero or more iterables.
  *
  * This is adapted from https://stackoverflow.com/questions/53749357/idiomatic-way-to-create-n-ary-cartesian-product-combinations-of-several-sets-of
- * with comments, variable renamings, and minor formatting changes. Credit is
+ * with comments, variable renamings, and minor formatting changes. Also changed
+ * return value from a Set to a List, for stability. Credit is
  * mainly to Erik Huizinga and Tenfour04.
  */
-fun <T> Collection<Iterable<T>>.getCartesianProduct(): Set<List<T>> {
+fun <T> Collection<Iterable<T>>.getCartesianProduct(): List<List<T>> {
     return if (isEmpty()) {
-        emptySet()
+        emptyList()
     } else {
         // Turn the first iterable into a list of single-item lists. Each of
         // these will be the seed that items from remaining iterables will be
@@ -127,7 +128,7 @@ fun <T> Collection<Iterable<T>>.getCartesianProduct(): Set<List<T>> {
         // element of the existing product with everything in the iterable.
         drop(1).fold(seeds) { product, nextIterable ->
             product.flatMap { productMember -> nextIterable.map(productMember::plus) }
-        }.toSet()
+        }
     }
 }
 
