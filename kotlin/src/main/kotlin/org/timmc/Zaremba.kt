@@ -196,19 +196,21 @@ fun stepSizeAfterRecordZ(z: Double): Long {
 }
 
 /**
- * Find and print all n from 1 to [maxN] (inclusive) that produce record-setting
+ * Find and print all n that produce record-setting
  * values for z(n) or z(n)/log(tau(n)).
+ *
+ * Eventually overflows Long and crashes, if you get that far.
  *
  * Assumes that all record-setters will be A025487 numbers, so don't even do
  * those computations if A025487 factorization fails.
  */
-fun doRecords(maxN: Long) {
+fun doRecords(): Nothing {
     var n = 1L
     var stepSize = 1L
 
     var recordZ = 0.0
     var recordRatio = 0.0
-    while (n <= maxN) {
+    while (true) {
         val primeFactors = factorA025487(n)
         if (primeFactors != null) {
             val (z, tau) = zarembaAndTau(primeFactors)
@@ -258,20 +260,32 @@ fun dieWithUsage() {
     println("""
       Usage:
         ./zaremba single <n>
-        ./zaremba records <max-n>
+        ./zaremba records
         ./zaremba factor <n>
     """.trimIndent())
     exitProcess(1)
 }
 
 fun main(args: Array<String>) {
-    if (args.size != 2)
+    if (args.isEmpty())
         dieWithUsage()
 
     when (args[0]) {
-        "single" -> doSingle(args[1].toLong())
-        "records" -> doRecords(args[1].toLong())
-        "factor" -> doFactor(args[1].toLong())
+        "single" -> {
+            if (args.size != 2)
+                dieWithUsage()
+            doSingle(args[1].toLong())
+        }
+        "records" -> {
+            if (args.size != 1)
+                dieWithUsage()
+            doRecords()
+        }
+        "factor" -> {
+            if (args.size != 2)
+                dieWithUsage()
+            doFactor(args[1].toLong())
+        }
         else -> dieWithUsage()
     }
 }
