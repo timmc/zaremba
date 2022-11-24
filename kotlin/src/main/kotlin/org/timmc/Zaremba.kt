@@ -42,6 +42,9 @@ val primes = PrimesFinder()
 /**
  * Produce the prime factorization of an integer.
  *
+ * This is optimized for working with A025487 numbers, and may be slow in the
+ * general case.
+ *
  * If [assertA025487] is true, assume the number is in OEIS A025487. and fail
  * fast with null if the prime factors are not non-ascending, contiguous
  * prime factors starting with 2.
@@ -57,9 +60,12 @@ val primes = PrimesFinder()
  *   was true but condition was violated
  */
 fun factor(n: Long, assertA025487: Boolean = false): Map<Long, Int>? {
-    var previousPrimeRepeat = Int.MAX_VALUE
+    // Running remainder, and factors so far
     var remainder = n
     val factors = mutableMapOf<Long, Int>()
+
+    var previousPrimeRepeat = Int.MAX_VALUE // used for A025487 checks
+
     for (prime in primes.iterator()) {
         // Keep dividing n by prime until we can't
         var repeats = 0
@@ -74,6 +80,7 @@ fun factor(n: Long, assertA025487: Boolean = false): Map<Long, Int>? {
         }
 
         if (repeats == 0) {
+            // This prime wasn't a factor at all. Check what that means:
             if (remainder == 1L) {
                 // Done factorizing!
                 break
@@ -134,6 +141,9 @@ fun <T> Collection<Iterable<T>>.getCartesianProduct(): List<List<T>> {
 
 /**
  * Given a map of prime divisors to their repeat counts, return all divisors.
+ *
+ * Does not currently work for an empty input map (i.e. for 1), but may in the
+ * future.
  */
 fun primesToDivisors(primeFactors: Map<Long, Int>): List<Long> {
     // Make a list of powers lists. E.g. for {2:4, 3:2, 5:1} this would produce
@@ -147,10 +157,7 @@ fun primesToDivisors(primeFactors: Map<Long, Int>): List<Long> {
 }
 
 /**
- * Compute z(n) and tau(n), returned as a pair.
- *
- * Assumes that all record-setters will be A025487 numbers, so don't even do
- * those computations if A025487 factorization fails.
+ * Given a prime factorization, compute z(n) and tau(n), returned as a pair.
  */
 fun zarembaAndTau(primeFactors: Map<Long, Int>): Pair<Double, Int> {
     val divisors = primesToDivisors(primeFactors)
@@ -184,9 +191,17 @@ fun stepSizeAfterRecordZ(z: Double): Long {
             return ret
         }
     }
+    // Needed in case the primes iterator breaks in a weird way on large numbers
     throw AssertionError("Ran out of primes")
 }
 
+/**
+ * Find and print all n from 1 to [maxN] (inclusive) that produce record-setting
+ * values for z(n) or z(n)/log(tau(n)).
+ *
+ * Assumes that all record-setters will be A025487 numbers, so don't even do
+ * those computations if A025487 factorization fails.
+ */
 fun doRecords(maxN: Long) {
     var n = 1L
     var stepSize = 1L
