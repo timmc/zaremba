@@ -137,4 +137,12 @@ class ZarembaTest {
         val z360 = zarembaAndTau(factorGeneric(360)).first
         assertEquals(30, stepSizeAfterRecordZ(z360))
     }
+
+    @Test
+    fun stepSizeAfterRecordRatioTest() {
+        // For n > 1e9, use general formula
+        val n = 1102701600L
+        val ratio = 1.6402481809316225
+        assertEquals(30, stepSizeAfterRecordRatio(n, ratio))
+    }
 }

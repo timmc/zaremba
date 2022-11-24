@@ -1,8 +1,8 @@
 package org.timmc
 
-import java.lang.AssertionError
 import kotlin.math.ln
 import kotlin.math.max
+import kotlin.math.min
 import kotlin.system.exitProcess
 
 class PrimesFinder: Iterable<Long> {
@@ -195,6 +195,43 @@ fun stepSizeAfterRecordZ(z: Double): Long {
     throw AssertionError("Ran out of primes")
 }
 
+val ln2 = ln(2.0)
+
+/**
+ * Given record-setter ratio, find new step-size for looking for new
+ * record-setters.
+ *
+ * This only differs from [stepSizeAfterRecordZ] in the bounds multiplier, but
+ * it's not straightforward to generalize since the inputs to the multiplier are
+ * different.
+ */
+fun stepSizeAfterRecordRatio(n: Long, ratio: Double): Long {
+    // A hardcoded threshold based on known data; haven't yet proven what the
+    // smallest number is where the generalized formula starts working.
+    if (n < 1e9) {
+        return 1
+    }
+
+    var k = 0
+    var step = 1L // 2 * 3 * ... * p
+    var mertensProduct = 1.0 // 2/1 * 3/2 * ... * p/(p-1)
+
+    for (prime in primes.iterator()) {
+        k++
+        step *= prime
+        mertensProduct *= prime/(prime - 1.0)
+
+        val boundsTest = mertensProduct * ln(prime.toDouble()) / ((k+2) * ln2)
+        // If this prime pushes us past the ratio bound, it's the last in the prime
+        // product that we'll use for step-sizes.
+        if (boundsTest > ratio) {
+            return step
+        }
+    }
+    // Needed in case the primes iterator breaks in a weird way on large numbers
+    throw AssertionError("Ran out of primes")
+}
+
 /**
  * Find and print all n that produce record-setting
  * values for z(n) or z(n)/log(tau(n)).
@@ -227,8 +264,17 @@ fun doRecords(): Nothing {
                 else -> null
             }
 
-            if (isRecordZ) {
-                stepSize = stepSizeAfterRecordZ(z)
+            if (isRecordZ || isRecordRatio) {
+                val stepSizeZ = stepSizeAfterRecordZ(z)
+                val stepSizeRatio = stepSizeAfterRecordRatio(n, ratio)
+                // Assert that we can use min rather than taking the GCD, which
+                // would require more code.
+                if (stepSizeZ % stepSizeRatio != 0L) {
+                    throw AssertionError(
+                        "Assuming ratio steps are smaller than z steps, and that the lesser divides the greater."
+                    )
+                }
+                stepSize = min(stepSizeZ, stepSizeRatio)
             }
 
             if (recordType != null) {
