@@ -170,8 +170,8 @@ fun zarembaAndTau(primeFactors: Map<Long, Int>): Pair<Double, Int> {
 
 fun doSingle(n: Long) {
     val (z, tau) = zarembaAndTau(factorGeneric(n))
-    val ratio = z / ln(tau.toDouble())
-    println("z($n) = $z\ttau($n) = $tau\tz($n)/ln(tau($n)) = $ratio")
+    val v = z / ln(tau.toDouble())
+    println("z($n) = $z\ttau($n) = $tau\tz($n)/ln(tau($n)) = $v")
 }
 
 /**
@@ -198,14 +198,14 @@ fun stepSizeAfterRecordZ(z: Double): Long {
 val ln2 = ln(2.0)
 
 /**
- * Given record-setter ratio, find new step-size for looking for new
+ * Given record-setter v, find new step-size for looking for new
  * record-setters.
  *
  * This only differs from [stepSizeAfterRecordZ] in the bounds multiplier, but
  * it's not straightforward to generalize since the inputs to the multiplier are
  * different.
  */
-fun stepSizeAfterRecordRatio(n: Long, ratio: Double): Long {
+fun stepSizeAfterRecordV(n: Long, v: Double): Long {
     // A hardcoded threshold based on known data; haven't yet proven what the
     // smallest number is where the generalized formula starts working.
     if (n < 1e9) {
@@ -222,9 +222,9 @@ fun stepSizeAfterRecordRatio(n: Long, ratio: Double): Long {
         mertensProduct *= prime/(prime - 1.0)
 
         val boundsTest = mertensProduct * ln(prime.toDouble()) / ((k+2) * ln2)
-        // If this prime pushes us past the ratio bound, it's the last in the prime
+        // If this prime pushes us past the v bound, it's the last in the prime
         // product that we'll use for step-sizes.
-        if (boundsTest > ratio) {
+        if (boundsTest > v) {
             return step
         }
     }
@@ -234,7 +234,7 @@ fun stepSizeAfterRecordRatio(n: Long, ratio: Double): Long {
 
 /**
  * Find and print all n that produce record-setting
- * values for z(n) or z(n)/log(tau(n)).
+ * values for z(n) or v(n).
  *
  * Eventually overflows Long and crashes, if you get that far.
  *
@@ -246,46 +246,46 @@ fun doRecords(): Nothing {
     var stepSize = 1L
 
     var recordZ = 0.0
-    var recordRatio = 0.0
+    var recordV = 0.0
     while (true) {
         val primeFactors = factorA025487(n)
         if (primeFactors != null) {
             val (z, tau) = zarembaAndTau(primeFactors)
 
-            val ratio = z / ln(tau.toDouble())
+            val v = z / ln(tau.toDouble())
 
             val isRecordZ = recordZ > 0 && z > recordZ
-            val isRecordRatio = recordRatio > 0 && ratio > recordRatio
+            val isRecordV = recordV > 0 && v > recordV
 
             val recordType = when {
-                isRecordZ && isRecordRatio -> "both"
-                isRecordZ && !isRecordRatio -> "z"
-                !isRecordZ && isRecordRatio -> "ratio"
+                isRecordZ && isRecordV -> "both"
+                isRecordZ && !isRecordV -> "z"
+                !isRecordZ && isRecordV -> "v"
                 else -> null
             }
 
-            if (isRecordZ || isRecordRatio) {
+            if (isRecordZ || isRecordV) {
                 val stepSizeZ = stepSizeAfterRecordZ(z)
-                val stepSizeRatio = stepSizeAfterRecordRatio(n, ratio)
+                val stepSizeV = stepSizeAfterRecordV(n, v)
                 // Assert that we can use min rather than taking the GCD, which
                 // would require more code.
-                if (stepSizeZ % stepSizeRatio != 0L) {
+                if (stepSizeZ % stepSizeV != 0L) {
                     throw AssertionError(
-                        "Assuming ratio steps are smaller than z steps, and that the lesser divides the greater."
+                        "Assuming v steps are smaller than z steps, and that the lesser divides the greater."
                     )
                 }
-                stepSize = min(stepSizeZ, stepSizeRatio)
+                stepSize = min(stepSizeZ, stepSizeV)
             }
 
             if (recordType != null) {
-                println("$n\trecord=$recordType\tz(n) = $z\ttau(n) = $tau\tz(n)/ln(tau(n)) = $ratio\tstep=$stepSize")
+                println("$n\trecord=$recordType\tz(n) = $z\ttau(n) = $tau\tv(n) = $v\tstep=$stepSize")
             }
 
             recordZ = max(z, recordZ)
-            recordRatio = if (ratio.isNaN()) { // NaN for n = 1...
-                recordRatio
+            recordV = if (v.isNaN()) { // NaN for n = 1...
+                recordV
             } else {
-                max(ratio, recordRatio)
+                max(v, recordV)
             }
         }
         n += stepSize

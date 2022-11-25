@@ -139,10 +139,10 @@ class ZarembaTest {
     }
 
     @Test
-    fun stepSizeAfterRecordRatioTest() {
+    fun stepSizeAfterRecordVTest() {
         // For n > 1e9, use general formula
         val n = 1102701600L
-        val ratio = 1.6402481809316225
-        assertEquals(30, stepSizeAfterRecordRatio(n, ratio))
+        val v = 1.6402481809316225
+        assertEquals(30, stepSizeAfterRecordV(n, v))
     }
 }
