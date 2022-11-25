@@ -232,63 +232,88 @@ fun stepSizeAfterRecordV(n: Long, v: Double): Long {
     throw AssertionError("Ran out of primes")
 }
 
+data class RecordSetter(
+    val n: Long,
+    val z: Double,
+    val v: Double,
+    val type: String,
+    val tau: Int,
+    val stepSize: Long,
+)
+
 /**
- * Find and print all n that produce record-setting
- * values for z(n) or v(n).
+ * Yield all n that produce record-setting values for z(n) or v(n).
  *
  * Eventually overflows Long and crashes, if you get that far.
  *
  * Assumes that all record-setters will be A025487 numbers, so don't even do
  * those computations if A025487 factorization fails.
  */
-fun doRecords(): Nothing {
-    var n = 1L
-    var stepSize = 1L
+fun findRecords(): Iterator<RecordSetter> {
+    return iterator {
+        var n = 1L
+        var stepSize = 1L
 
-    var recordZ = 0.0
-    var recordV = 0.0
-    while (true) {
-        val primeFactors = factorA025487(n)
-        if (primeFactors != null) {
-            val (z, tau) = zarembaAndTau(primeFactors)
+        var recordZ = 0.0
+        var recordV = 0.0
+        while (true) {
+            val primeFactors = factorA025487(n)
+            if (primeFactors != null) {
+                val (z, tau) = zarembaAndTau(primeFactors)
 
-            val v = z / ln(tau.toDouble())
+                val v = z / ln(tau.toDouble())
 
-            val isRecordZ = recordZ > 0 && z > recordZ
-            val isRecordV = recordV > 0 && v > recordV
+                val isRecordZ = recordZ > 0 && z > recordZ
+                val isRecordV = recordV > 0 && v > recordV
 
-            val recordType = when {
-                isRecordZ && isRecordV -> "both"
-                isRecordZ && !isRecordV -> "z"
-                !isRecordZ && isRecordV -> "v"
-                else -> null
-            }
-
-            if (isRecordZ || isRecordV) {
-                val stepSizeZ = stepSizeAfterRecordZ(z)
-                val stepSizeV = stepSizeAfterRecordV(n, v)
-                // Assert that we can use min rather than taking the GCD, which
-                // would require more code.
-                if (stepSizeZ % stepSizeV != 0L) {
-                    throw AssertionError(
-                        "Assuming v steps are smaller than z steps, and that the lesser divides the greater."
-                    )
+                val recordType = when {
+                    isRecordZ && isRecordV -> "both"
+                    isRecordZ && !isRecordV -> "z"
+                    !isRecordZ && isRecordV -> "v"
+                    else -> null
                 }
-                stepSize = min(stepSizeZ, stepSizeV)
-            }
 
-            if (recordType != null) {
-                println("$n\trecord=$recordType\tz(n) = $z\ttau(n) = $tau\tv(n) = $v\tstep=$stepSize")
-            }
+                if (isRecordZ || isRecordV) {
+                    val stepSizeZ = stepSizeAfterRecordZ(z)
+                    val stepSizeV = stepSizeAfterRecordV(n, v)
+                    // Assert that we can use min rather than taking the GCD, which
+                    // would require more code.
+                    if (stepSizeZ % stepSizeV != 0L) {
+                        throw AssertionError(
+                            "Assuming v steps are smaller than z steps, and that the lesser divides the greater."
+                        )
+                    }
+                    stepSize = min(stepSizeZ, stepSizeV)
+                }
 
-            recordZ = max(z, recordZ)
-            recordV = if (v.isNaN()) { // NaN for n = 1...
-                recordV
-            } else {
-                max(v, recordV)
+                if (recordType != null) {
+                    yield(RecordSetter(
+                        n = n, z = z, v = v, type = recordType,
+                        tau = tau, stepSize = stepSize
+                    ))
+                }
+
+                recordZ = max(z, recordZ)
+                recordV = if (v.isNaN()) { // NaN for n = 1...
+                    recordV
+                } else {
+                    max(v, recordV)
+                }
             }
+            n += stepSize
         }
-        n += stepSize
+    }
+}
+
+/**
+ * Find and print all n that produce record-setting
+ * values for z(n) or v(n).
+ *
+ * Eventually overflows Long and crashes, if you get that far.
+ */
+fun doRecords() {
+    findRecords().forEach { r ->
+        println("${r.n}\trecord=${r.type}\tz(n) = ${r.z}\ttau(n) = ${r.tau}\tv(n) = ${r.v}\tstep=${r.stepSize}")
     }
 }
 

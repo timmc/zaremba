@@ -145,4 +145,16 @@ class ZarembaTest {
         val v = 1.6402481809316225
         assertEquals(30, stepSizeAfterRecordV(n, v))
     }
+
+    @Test
+    fun findRecordsTest() {
+        assertEquals(
+            listOf(
+                RecordSetter(n=4, z=0.6931471805599453, v=0.6309297535714574, type="both", tau=3, stepSize=1),
+                RecordSetter(n=6, z=1.0114042647073518, v=0.7295739585136225, type="both", tau=4, stepSize=1),
+                RecordSetter(n=12, z=1.5650534091363246, v=0.8734729387592397, type="both", tau=6, stepSize=1),
+            ),
+            findRecords().asSequence().take(3).toList()
+        )
+    }
 }
