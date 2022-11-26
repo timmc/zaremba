@@ -1,3 +1,11 @@
+/**
+ * Definitions:
+ *
+ * - `Pk` is the kth prime, and is usually used when the first k primes are to
+ *   be multiplied together; `zStepPk` refers to the number of primes that must
+ *   be multiplied to form the step size for z.
+ */
+
 package org.timmc
 
 import kotlin.math.ceil
@@ -182,7 +190,7 @@ fun doSingle(n: Long) {
  * Given record-setter z(n), find new step-size for looking for new
  * record-setters.
  */
-fun stepSizeAfterRecordZ(z: Double): Long {
+fun zStep(recordZ: Double): Long {
     var ret = 1L // 2 * 3 * ... * p
     var mertensProduct = 1.0 // 2/1 * 3/2 * ... * p/(p-1)
     for (prime in primeSeq()) {
@@ -191,7 +199,7 @@ fun stepSizeAfterRecordZ(z: Double): Long {
         val boundsTest = mertensProduct * ln(prime.toDouble()) // TODO erdos(p)
         // If this prime pushes us past the z bound, it's the last in the prime
         // product that we'll use for step-sizes.
-        if (boundsTest > z) {
+        if (boundsTest > recordZ) {
             return ret
         }
     }
@@ -230,7 +238,7 @@ fun minTauExponents(n: Long, primesK: Int): List<List<Int>> {
     val allExponents = (1..maxExponent).toList()
     // Each element is a candidate list of exponents. Full list is of length
     // maxExponent^primesK
-    val allCombos = List(primesK) { _ -> allExponents }.getCartesianProduct()
+    val allCombos = List(primesK) { allExponents }.getCartesianProduct()
     return allCombos.filter { candidate -> nonAscending(candidate) }
 }
 
@@ -265,15 +273,15 @@ fun minTau(n: Long, primesK: Int): Int {
 }
 
 /**
- * Given n, find new step-size for looking for new record-setters.
+ * Find new step-size for looking for new record-setters, based on V.
  *
  * This requires the most recent *record* for v.
  *
  * @return The number of consecutive primes (from 2) to multiply to get the
  *   step size for v.
  */
-fun newVStepSizePrimesCount(n: Long, recordV: Double, vStepSizePrimesCount: Int): Int {
-    if (vStepSizePrimesCount < 1) {
+fun vStepPk(n: Long, recordV: Double, vStepPkLast: Int): Int {
+    if (vStepPkLast < 1) {
         return if (n < 4) {
             0 // step size 1
         } else {
@@ -281,28 +289,39 @@ fun newVStepSizePrimesCount(n: Long, recordV: Double, vStepSizePrimesCount: Int)
         }
     }
 
-    val lastStepPrimes = primeSeq().take(vStepSizePrimesCount).toList()
+    val lastStepPrimes = primeSeq().take(vStepPkLast).toList()
 
     // Merten's Product up to largest prime in current v step size
     val mert = lastStepPrimes. map { p -> p/(p - 1.0) }.product()
     // And the Erdos sum
     val erdos = lastStepPrimes.sumOf { p -> ln(p.toDouble())/(p - 1) }
-    val minTauD = minTau(n, vStepSizePrimesCount).toDouble()
+    val minTauD = minTau(n, vStepPkLast).toDouble()
 
     return if (mert * erdos / ln(minTauD) <= recordV) {
-        val nextStepCount = vStepSizePrimesCount + 1
+        val nextStepCount = vStepPkLast + 1
         val nextStep = primeSeq().take(nextStepCount).product()
 
         if (n % nextStep == 0L) {
             nextStepCount
         } else {
             // need to wait until a higher multiple
-            vStepSizePrimesCount
+            vStepPkLast
         }
     } else {
         // no luck, use the old one
-        vStepSizePrimesCount
+        vStepPkLast
     }
+}
+
+/**
+ * Given two step values, produce a step size that satisfies both.
+ */
+fun minStep(stepA: Long, stepB: Long): Long {
+    // If this ever throws, need to switch to using the GCD.
+    if (stepA % stepB != 0L && stepB % stepA != 0L) {
+        throw AssertionError("Assuming stepA divides stepB or vice versa")
+    }
+    return min(stepA, stepB)
 }
 
 data class RecordSetter(
@@ -312,7 +331,7 @@ data class RecordSetter(
     val type: String,
     val tau: Int,
     val stepSize: Long,
-    val stepSizeForV: Long,
+    val stepSizeFromV: Long,
 )
 
 /**
@@ -326,8 +345,8 @@ data class RecordSetter(
 fun findRecords(): Iterator<RecordSetter> {
     return iterator {
         var n = 1L
-        var stepSize = 1L
-        var vStepSizePrimesCount = 0 // number of primes to multiply for the v step size
+        var vStepPk = 0 // number of primes to multiply for the v step size
+        var stepSize = 1L // *actual* step size to use, based on z and v steps
 
         var recordZ = 0.0
         var recordV = 0.0
@@ -356,21 +375,17 @@ fun findRecords(): Iterator<RecordSetter> {
                 }
 
                 if (isRecordZ || isRecordV) {
-                    val stepSizeZ = stepSizeAfterRecordZ(z)
-                    vStepSizePrimesCount = newVStepSizePrimesCount(n=n, recordV=recordV, vStepSizePrimesCount=vStepSizePrimesCount)
-                    val stepSizeV = primeSeq().take(vStepSizePrimesCount).product()
-                    // Assert that we can use min rather than taking the GCD, which
-                    // would require more code.
-                    if (stepSizeZ % stepSizeV != 0L) {
-                        throw AssertionError(
-                            "Assuming v steps are smaller than z steps, and that the lesser divides the greater."
-                        )
-                    }
-                    stepSize = min(stepSizeZ, stepSizeV)
+                    // Calculate new step size for both Z and V even if only one
+                    // changed, just because that's easier.
+                    val zStepNew = zStep(recordZ=recordZ)
+                    vStepPk = vStepPk(n=n, recordV=recordV, vStepPkLast=vStepPk)
+                    val vStepNew = primeSeq().take(vStepPk).product()
+                    stepSize = minStep(zStepNew, vStepNew)
 
                     yield(RecordSetter(
                         n = n, z = z, v = v, type = recordType!!,
-                        tau = tau, stepSize = stepSize, stepSizeForV = stepSizeV,
+                        tau = tau, stepSize = stepSize,
+                        stepSizeFromV = vStepNew,
                     ))
                 }
             }
@@ -395,9 +410,9 @@ fun doRecords(variantStr: String) {
             println("${r.n}\trecord=${r.type}\tz(n) = ${r.z}\ttau(n) = ${r.tau}\tv(n) = ${r.v}\tstep=${r.stepSize}")
         }
         "latex" -> {
-            println("n & z & tau & v & type & stepSize & step size for v}")
+            println("n & z(n) & tau(n) & v(n) & type of record & step size in effect & step size from v")
             findRecords().forEach { r ->
-                println("${r.n} & ${r.z} & ${r.tau} & ${r.v} & ${r.type} & ${r.stepSize} & ${r.stepSizeForV}")
+                println("${r.n} & ${r.z} & ${r.tau} & ${r.v} & ${r.type} & ${r.stepSize} & ${r.stepSizeFromV}")
             }
         }
         else -> dieWithUsage()

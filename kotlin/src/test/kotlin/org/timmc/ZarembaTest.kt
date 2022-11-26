@@ -3,6 +3,7 @@ package org.timmc
 import org.junit.jupiter.api.Test
 import kotlin.math.ln
 import kotlin.test.assertEquals
+import kotlin.test.assertFails
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
@@ -138,7 +139,7 @@ class ZarembaTest {
     @Test
     fun stepSizeAfterRecordZTest() {
         val z360 = zarembaAndTau(factorGeneric(360)).first
-        assertEquals(30, stepSizeAfterRecordZ(z360))
+        assertEquals(30, zStep(z360))
     }
 
     @Test
@@ -187,16 +188,26 @@ class ZarembaTest {
 
     @Test
     fun stepSizeAfterRecordVTest() {
-        assertEquals(3, newVStepSizePrimesCount(n=1102701600, recordV=1.6546758215862982, vStepSizePrimesCount=2))
+        assertEquals(3, vStepPk(n=1102701600, recordV=1.6546758215862982, vStepPkLast=2))
+    }
+
+    @Test
+    fun minStepTest() {
+        assertEquals(30, minStep(30, 30))
+        assertEquals(30, minStep(30, 210))
+        assertEquals(30, minStep(210, 30))
+
+        val t = assertFails { minStep(30, 40) }
+        assertEquals("Assuming stepA divides stepB or vice versa", t.message)
     }
 
     @Test
     fun findRecordsTest() {
         assertEquals(
             listOf(
-                RecordSetter(n=4, z=0.6931471805599453, v=0.6309297535714574, type="both", tau=3, stepSize=2, stepSizeForV = 2),
-                RecordSetter(n=6, z=1.0114042647073518, v=0.7295739585136225, type="both", tau=4, stepSize=2, stepSizeForV = 2),
-                RecordSetter(n=12, z=1.5650534091363246, v=0.8734729387592397, type="both", tau=6, stepSize=6, stepSizeForV = 6),
+                RecordSetter(n=4, z=0.6931471805599453, v=0.6309297535714574, type="both", tau=3, stepSize=2, stepSizeFromV = 2),
+                RecordSetter(n=6, z=1.0114042647073518, v=0.7295739585136225, type="both", tau=4, stepSize=2, stepSizeFromV = 2),
+                RecordSetter(n=12, z=1.5650534091363246, v=0.8734729387592397, type="both", tau=6, stepSize=6, stepSizeFromV = 6),
             ),
             findRecords().asSequence().take(3).toList()
         )
