@@ -183,7 +183,7 @@ fun zarembaAndTau(primeFactors: Map<Long, Int>): Pair<Double, Int> {
 fun doSingle(n: Long) {
     val (z, tau) = zarembaAndTau(factorGeneric(n))
     val v = z / ln(tau.toDouble())
-    println("z($n) = $z\ttau($n) = $tau\tz($n)/ln(tau($n)) = $v")
+    println("z(n) = $z\ttau(n) = $tau\tv(n) = $v")
 }
 
 /**
