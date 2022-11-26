@@ -1,0 +1,48 @@
+$ java -jar target/zaremba-*-jar-with-dependencies.jar 
+Stats for n = 1927522396800 with primesK = 5
+Count below bound: 1053
+Total #: 324632
+Min 10 tau:
+  MinTauCandidate(exponents=[1, 1, 1, 1, 1], tau=32, log=7.745002803515839)
+  MinTauCandidate(exponents=[2, 1, 1, 1, 1], tau=48, log=8.438149984075785)
+  MinTauCandidate(exponents=[3, 1, 1, 1, 1], tau=64, log=9.131297164635729)
+  MinTauCandidate(exponents=[2, 2, 1, 1, 1], tau=72, log=9.536762272743895)
+  MinTauCandidate(exponents=[4, 1, 1, 1, 1], tau=80, log=9.824444345195676)
+  MinTauCandidate(exponents=[3, 2, 1, 1, 1], tau=96, log=10.22990945330384)
+  MinTauCandidate(exponents=[5, 1, 1, 1, 1], tau=96, log=10.51759152575562)
+  MinTauCandidate(exponents=[2, 2, 2, 1, 1], tau=108, log=11.146200185177994)
+  MinTauCandidate(exponents=[6, 1, 1, 1, 1], tau=112, log=11.210738706315565)
+  MinTauCandidate(exponents=[4, 2, 1, 1, 1], tau=120, log=10.923056633863785)
+Max 10 tau < bound:
+  MinTauCandidate(exponents=[7, 6, 5, 2, 2], tau=3024, log=28.178504401806144)
+  MinTauCandidate(exponents=[7, 7, 3, 3, 2], tau=3072, log=28.004151014661364)
+  MinTauCandidate(exponents=[7, 5, 3, 3, 3], tau=3072, log=28.204821710123518)
+  MinTauCandidate(exponents=[10, 6, 4, 3, 1], tau=3080, log=28.196522907308825)
+  MinTauCandidate(exponents=[12, 4, 3, 3, 2], tau=3120, log=28.174050051456764)
+  MinTauCandidate(exponents=[9, 6, 4, 2, 2], tau=3150, log=27.955360850491935)
+  MinTauCandidate(exponents=[10, 7, 3, 2, 2], tau=3168, log=28.13768240728589)
+  MinTauCandidate(exponents=[10, 5, 3, 3, 2], tau=3168, log=27.886367979004984)
+  MinTauCandidate(exponents=[11, 5, 4, 2, 2], tau=3240, log=28.24304292294372)
+  MinTauCandidate(exponents=[8, 5, 4, 3, 2], tau=3240, log=28.109511530319192)
+Min 10 tau >= bound:
+  MinTauCandidate(exponents=[31, 1, 1, 1, 1], tau=512, log=28.539418220314197)
+  MinTauCandidate(exponents=[30, 2, 1, 1, 1], tau=744, log=28.944883328422357)
+  MinTauCandidate(exponents=[31, 2, 1, 1, 1], tau=768, log=29.638030508982304)
+  MinTauCandidate(exponents=[28, 3, 1, 1, 1], tau=928, log=28.657201255970577)
+  MinTauCandidate(exponents=[29, 3, 1, 1, 1], tau=960, log=29.350348436530524)
+  MinTauCandidate(exponents=[30, 3, 1, 1, 1], tau=992, log=30.04349561709047)
+  MinTauCandidate(exponents=[27, 2, 2, 1, 1], tau=1008, log=28.474879699176626)
+  MinTauCandidate(exponents=[31, 3, 1, 1, 1], tau=1024, log=30.73664279765042)
+  MinTauCandidate(exponents=[28, 2, 2, 1, 1], tau=1044, log=29.168026879736566)
+  MinTauCandidate(exponents=[26, 4, 1, 1, 1], tau=1080, log=28.369519183518797)
+Max 10 tau:
+  MinTauCandidate(exponents=[31, 31, 31, 29, 29], tau=29491200, log=231.40747606528367)
+  MinTauCandidate(exponents=[31, 31, 30, 30, 29], tau=29521920, log=231.74394830190488)
+  MinTauCandidate(exponents=[31, 30, 30, 30, 30], tau=29552672, log=233.0432312860351)
+  MinTauCandidate(exponents=[31, 31, 31, 31, 28], tau=30408704, log=232.9014010905959)
+  MinTauCandidate(exponents=[31, 31, 31, 30, 29], tau=30474240, log=233.35338621433897)
+  MinTauCandidate(exponents=[31, 31, 30, 30, 30], tau=30505984, log=234.14184357470327)
+  MinTauCandidate(exponents=[31, 31, 31, 31, 29], tau=31457280, log=235.29929636339426)
+  MinTauCandidate(exponents=[31, 31, 31, 30, 30], tau=31490048, log=235.75128148713736)
+  MinTauCandidate(exponents=[31, 31, 31, 31, 30], tau=32505856, log=237.69719163619266)
+  MinTauCandidate(exponents=[31, 31, 31, 31, 31], tau=33554432, log=240.09508690899102)

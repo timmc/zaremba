@@ -442,7 +442,42 @@ fun dieWithUsage(): Nothing {
     exitProcess(1)
 }
 
+data class MinTauCandidate(
+    val exponents: List<Int>,
+    val tau: Int,
+    val log: Double,
+)
+
 fun main(args: Array<String>) {
+
+    val n = 1927522396800
+    val primesK = 5
+    val reducedN = primeSeq().take(primesK).fold(n.toDouble()) { reduced, p -> reduced / p }
+    val maxExponent = ceil(log2(reducedN)).toInt() + 1
+    val allExponents = (1..maxExponent).toList()
+    val allCombos = List(primesK) { allExponents }.getCartesianProduct()
+    val candidateExponents = allCombos.filter { candidate -> nonAscending(candidate) }
+    val expTauLog = candidateExponents.map { exps -> MinTauCandidate(exps, primesToTau(exps), unfactorLog(exps)) }
+
+    val bound = ln(n.toDouble())
+
+    println("Stats for n = $n with primesK = $primesK")
+    println("Count below bound: ${expTauLog.filter { it.log < bound }.count()}")
+    println("Total #: ${candidateExponents.count()}")
+
+    println("Min 10 tau:")
+    expTauLog.sortedBy { it.tau }.take(10).forEach { println("  $it") }
+
+    println("Max 10 tau < bound:")
+    expTauLog.filter { it.log < bound }.sortedBy { -it.tau }.take(10).toList().reversed().forEach { println("  $it") }
+
+    println("Min 10 tau >= bound:")
+    expTauLog.filter { it.log >= bound }.sortedBy { it.tau }.take(10).forEach { println("  $it") }
+
+    println("Max 10 tau:")
+    expTauLog.sortedBy { -it.tau }.take(10).toList().reversed().forEach { println("  $it") }
+
+
     if (args.isEmpty())
         dieWithUsage()
 
