@@ -1,6 +1,8 @@
 package org.timmc
 
+import kotlin.math.ceil
 import kotlin.math.ln
+import kotlin.math.log2
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.system.exitProcess
@@ -39,6 +41,8 @@ class PrimesFinder: Iterable<Long> {
 
 val primes = PrimesFinder()
 
+fun primeSeq() = primes.iterator().asSequence()
+
 /**
  * Produce the prime factorization of an integer.
  *
@@ -66,7 +70,7 @@ fun factor(n: Long, assertA025487: Boolean = false): Map<Long, Int>? {
 
     var previousPrimeRepeat = Int.MAX_VALUE // used for A025487 checks
 
-    for (prime in primes.iterator()) {
+    for (prime in primeSeq()) {
         // Keep dividing n by prime until we can't
         var repeats = 0
         while (remainder % prime == 0L) {
@@ -181,10 +185,10 @@ fun doSingle(n: Long) {
 fun stepSizeAfterRecordZ(z: Double): Long {
     var ret = 1L // 2 * 3 * ... * p
     var mertensProduct = 1.0 // 2/1 * 3/2 * ... * p/(p-1)
-    for (prime in primes.iterator()) {
+    for (prime in primeSeq()) {
         ret *= prime
         mertensProduct *= prime/(prime - 1.0)
-        val boundsTest = mertensProduct * ln(prime.toDouble())
+        val boundsTest = mertensProduct * ln(prime.toDouble()) // TODO erdos(p)
         // If this prime pushes us past the z bound, it's the last in the prime
         // product that we'll use for step-sizes.
         if (boundsTest > z) {
@@ -195,41 +199,110 @@ fun stepSizeAfterRecordZ(z: Double): Long {
     throw AssertionError("Ran out of primes")
 }
 
-val ln2 = ln(2.0)
+fun nonAscending(l: List<Int>): Boolean {
+    var previous = Int.MAX_VALUE
+    for (x in l) {
+        if (x > previous) {
+            return false
+        }
+        previous = x
+    }
+    return true
+}
 
 /**
- * Given record-setter v, find new step-size for looking for new
- * record-setters.
+ * Helper function to generate candidate prime exponents for [minTau].
  *
- * This only differs from [stepSizeAfterRecordZ] in the bounds multiplier, but
- * it's not straightforward to generalize since the inputs to the multiplier are
- * different.
+ * Given an [n] we've reached, and the number [primesK] of consecutive primes
+ * we're currently using in the v step size, return all possible lists of
+ * exponents for those primes.
+ *
+ * Each sublist is of length [primesK] and is a positive non-ascending sequence.
  */
-fun stepSizeAfterRecordV(n: Long, v: Double): Long {
-    // A hardcoded threshold based on known data; haven't yet proven what the
-    // smallest number is where the generalized formula starts working.
-    if (n < 1e9) {
-        return 1
+fun minTauExponents(n: Long, primesK: Int): List<List<Int>> {
+    // Divide n by all primes since we know there will be at least one of each.
+    val reducedN = primeSeq().take(primesK).fold(n.toDouble()) { reduced, p -> reduced / p }
+    // log2 of this reduced-n value tells us how many more 2s will fit (2 having
+    // the largest possible range of exponents)
+    val maxExponent = ceil(log2(reducedN)).toInt() + 1 // "+ 1" because we already took out a 2 above
+
+    // All possible exponents for any position
+    val allExponents = (1..maxExponent).toList()
+    // Each element is a candidate list of exponents. Full list is of length
+    // maxExponent^primesK
+    val allCombos = List(primesK) { _ -> allExponents }.getCartesianProduct()
+    return allCombos.filter { candidate -> nonAscending(candidate) }
+}
+
+/**
+ * Given exponents of consecutive primes starting at 2, produce the log of their
+ * recomposition.
+ */
+fun unfactorLog(primeExponents: List<Int>): Double {
+    return primeExponents.asSequence().zip(primeSeq()).sumOf { (exponent, prime) ->
+        exponent * ln(prime.toDouble())
     }
+}
 
-    var k = 0
-    var step = 1L // 2 * 3 * ... * p
-    var mertensProduct = 1.0 // 2/1 * 3/2 * ... * p/(p-1)
+/**
+ * Given a set of prime exponents, give the number of divisors if they were
+ * recomposed.
+ */
+fun primesToTau(exponents: List<Int>): Int {
+    return exponents.map { it + 1 }.product()
+}
 
-    for (prime in primes.iterator()) {
-        k++
-        step *= prime
-        mertensProduct *= prime/(prime - 1.0)
+/**
+ * TODO: Compute in a more efficient way?
+ */
+fun minTau(n: Long, primesK: Int): Int {
+    val candidateExponents = minTauExponents(n, primesK)
+    val bound = ln(n.toDouble() - 1) // "- 1" to be on the safe side
+    // Filter candidates for those which would produce a number >= n, but do it
+    // log-transformed to avoid huge numbers.
+    val atLeastN = candidateExponents.filter { unfactorLog(it) >= bound }
+    return atLeastN.minOf(::primesToTau)
+}
 
-        val boundsTest = mertensProduct * ln(prime.toDouble()) / ((k+2) * ln2)
-        // If this prime pushes us past the v bound, it's the last in the prime
-        // product that we'll use for step-sizes.
-        if (boundsTest > v) {
-            return step
+/**
+ * Given n, find new step-size for looking for new record-setters.
+ *
+ * This requires the most recent *record* for v.
+ *
+ * @return The number of consecutive primes (from 2) to multiply to get the
+ *   step size for v.
+ */
+fun newVStepSizePrimesCount(n: Long, recordV: Double, vStepSizePrimesCount: Int): Int {
+    if (vStepSizePrimesCount < 1) {
+        return if (n < 4) {
+            0 // step size 1
+        } else {
+            1 // step size 2
         }
     }
-    // Needed in case the primes iterator breaks in a weird way on large numbers
-    throw AssertionError("Ran out of primes")
+
+    val lastStepPrimes = primeSeq().take(vStepSizePrimesCount).toList()
+
+    // Merten's Product up to largest prime in current v step size
+    val mert = lastStepPrimes. map { p -> p/(p - 1.0) }.product()
+    // And the Erdos sum
+    val erdos = lastStepPrimes.sumOf { p -> ln(p.toDouble())/(p - 1) }
+    val minTauD = minTau(n, vStepSizePrimesCount).toDouble()
+
+    return if (mert * erdos / ln(minTauD) <= recordV) {
+        val nextStepCount = vStepSizePrimesCount + 1
+        val nextStep = primeSeq().take(nextStepCount).product()
+
+        if (n % nextStep == 0L) {
+            nextStepCount
+        } else {
+            // need to wait until a higher multiple
+            vStepSizePrimesCount
+        }
+    } else {
+        // no luck, use the old one
+        vStepSizePrimesCount
+    }
 }
 
 data class RecordSetter(
@@ -239,6 +312,7 @@ data class RecordSetter(
     val type: String,
     val tau: Int,
     val stepSize: Long,
+    val stepSizeForV: Long,
 )
 
 /**
@@ -253,6 +327,7 @@ fun findRecords(): Iterator<RecordSetter> {
     return iterator {
         var n = 1L
         var stepSize = 1L
+        var vStepSizePrimesCount = 0 // number of primes to multiply for the v step size
 
         var recordZ = 0.0
         var recordV = 0.0
@@ -266,6 +341,13 @@ fun findRecords(): Iterator<RecordSetter> {
                 val isRecordZ = recordZ > 0 && z > recordZ
                 val isRecordV = recordV > 0 && v > recordV
 
+                recordZ = max(z, recordZ)
+                recordV = if (v.isNaN()) { // NaN for n = 1...
+                    recordV
+                } else {
+                    max(v, recordV)
+                }
+
                 val recordType = when {
                     isRecordZ && isRecordV -> "both"
                     isRecordZ && !isRecordV -> "z"
@@ -275,7 +357,8 @@ fun findRecords(): Iterator<RecordSetter> {
 
                 if (isRecordZ || isRecordV) {
                     val stepSizeZ = stepSizeAfterRecordZ(z)
-                    val stepSizeV = stepSizeAfterRecordV(n, v)
+                    vStepSizePrimesCount = newVStepSizePrimesCount(n=n, recordV=recordV, vStepSizePrimesCount=vStepSizePrimesCount)
+                    val stepSizeV = primeSeq().take(vStepSizePrimesCount).product()
                     // Assert that we can use min rather than taking the GCD, which
                     // would require more code.
                     if (stepSizeZ % stepSizeV != 0L) {
@@ -284,20 +367,11 @@ fun findRecords(): Iterator<RecordSetter> {
                         )
                     }
                     stepSize = min(stepSizeZ, stepSizeV)
-                }
 
-                if (recordType != null) {
                     yield(RecordSetter(
-                        n = n, z = z, v = v, type = recordType,
-                        tau = tau, stepSize = stepSize
+                        n = n, z = z, v = v, type = recordType!!,
+                        tau = tau, stepSize = stepSize, stepSizeForV = stepSizeV,
                     ))
-                }
-
-                recordZ = max(z, recordZ)
-                recordV = if (v.isNaN()) { // NaN for n = 1...
-                    recordV
-                } else {
-                    max(v, recordV)
                 }
             }
             n += stepSize
@@ -305,15 +379,28 @@ fun findRecords(): Iterator<RecordSetter> {
     }
 }
 
+fun Sequence<Long>.product(): Long = fold(1) { acc, n -> acc * n }
+fun List<Double>.product(): Double = fold(1.0) { acc, n -> acc * n }
+fun List<Int>.product(): Int = fold(1) { acc, n -> acc * n }
+
 /**
  * Find and print all n that produce record-setting
  * values for z(n) or v(n).
  *
  * Eventually overflows Long and crashes, if you get that far.
  */
-fun doRecords() {
-    findRecords().forEach { r ->
-        println("${r.n}\trecord=${r.type}\tz(n) = ${r.z}\ttau(n) = ${r.tau}\tv(n) = ${r.v}\tstep=${r.stepSize}")
+fun doRecords(variantStr: String) {
+    when (variantStr) {
+        "classic" -> findRecords().forEach { r ->
+            println("${r.n}\trecord=${r.type}\tz(n) = ${r.z}\ttau(n) = ${r.tau}\tv(n) = ${r.v}\tstep=${r.stepSize}")
+        }
+        "latex" -> {
+            println("n & z & tau & v & type & stepSize & step size for v}")
+            findRecords().forEach { r ->
+                println("${r.n} & ${r.z} & ${r.tau} & ${r.v} & ${r.type} & ${r.stepSize} & ${r.stepSizeForV}")
+            }
+        }
+        else -> dieWithUsage()
     }
 }
 
@@ -327,11 +414,11 @@ fun doFactor(n: Long) {
     println("Factors: $sparkline ${factorization.map { (k, v) -> "$k^$v" }.joinToString(" * ")}")
 }
 
-fun dieWithUsage() {
+fun dieWithUsage(): Nothing {
     println("""
       Usage:
         ./zaremba single <n>
-        ./zaremba records
+        ./zaremba records [classic | latex]
         ./zaremba factor <n>
     """.trimIndent())
     exitProcess(1)
@@ -348,9 +435,9 @@ fun main(args: Array<String>) {
             doSingle(args[1].toLong())
         }
         "records" -> {
-            if (args.size != 1)
+            if (args.size != 2)
                 dieWithUsage()
-            doRecords()
+            doRecords(args[1])
         }
         "factor" -> {
             if (args.size != 2)

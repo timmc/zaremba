@@ -1,7 +1,10 @@
 package org.timmc
 
 import org.junit.jupiter.api.Test
+import kotlin.math.ln
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 class ZarembaTest {
     @Test
@@ -139,20 +142,61 @@ class ZarembaTest {
     }
 
     @Test
+    fun nonAscendingTest() {
+        assertTrue(nonAscending(emptyList()))
+        assertTrue(nonAscending(listOf(4)))
+        assertTrue(nonAscending(listOf(4, 4, 4, 3)))
+
+        assertFalse(nonAscending(listOf(4, 4, 4, 8, 4)))
+    }
+
+    @Test
+    fun minTauExponentsTest() {
+        assertEquals(
+            setOf(
+                listOf(5, 1), listOf(5, 2), listOf(5, 3), listOf(5, 4), listOf(5, 5),
+                listOf(4, 1), listOf(4, 2), listOf(4, 3), listOf(4, 4),
+                listOf(3, 1), listOf(3, 2), listOf(3, 3),
+                listOf(2, 1), listOf(2, 2),
+                listOf(1, 1),
+            ),
+            minTauExponents(n=72, primesK=2).toSet()
+        )
+    }
+
+    @Test
+    fun unfactorLogTest() {
+        assertEquals(0.0, unfactorLog(emptyList()))
+        assertEquals(ln(120.0), unfactorLog(listOf(3, 1, 1)))
+    }
+
+    @Test
+    fun primesToTauTest() {
+        assertEquals(1, primesToTau(emptyList()))
+        assertEquals(20, primesToTau(listOf(1, 1, 4)))
+    }
+
+    @Test
+    fun minTauTest() {
+        // primesK=0 not supported
+        //assertEquals(1, minTau(2, 0))
+
+        assertEquals(3, minTau(4, 1))
+        assertEquals(12, minTau(72, 2))
+    }
+
+    @Test
     fun stepSizeAfterRecordVTest() {
-        // For n > 1e9, use general formula
-        val n = 1102701600L
-        val v = 1.6402481809316225
-        assertEquals(30, stepSizeAfterRecordV(n, v))
+        assertEquals(3, newVStepSizePrimesCount(n=1102701600, recordV=1.6546758215862982, vStepSizePrimesCount=2))
     }
 
     @Test
     fun findRecordsTest() {
         assertEquals(
             listOf(
-                RecordSetter(n=4, z=0.6931471805599453, v=0.6309297535714574, type="both", tau=3, stepSize=1),
-                RecordSetter(n=6, z=1.0114042647073518, v=0.7295739585136225, type="both", tau=4, stepSize=1),
-                RecordSetter(n=12, z=1.5650534091363246, v=0.8734729387592397, type="both", tau=6, stepSize=1),
+                RecordSetter(n=4, z=0.6931471805599453, v=0.6309297535714574, type="both", tau=3, stepSize=2, stepSizeForV = 2),
+                RecordSetter(n=6, z=1.0114042647073518, v=0.7295739585136225, type="both", tau=4, stepSize=2, stepSizeForV = 2),
+                RecordSetter(n=12, z=1.5650534091363246, v=0.8734729387592397, type="both", tau=6, stepSize=6, stepSizeForV = 6),
             ),
             findRecords().asSequence().take(3).toList()
         )
