@@ -132,17 +132,17 @@ fun factorA025487(n: Long): Map<Long, Int>? =
  *
  * This is adapted from https://stackoverflow.com/questions/53749357/idiomatic-way-to-create-n-ary-cartesian-product-combinations-of-several-sets-of
  * with comments, variable renamings, and minor formatting changes. Also changed
- * return value from a Set to a List, for stability. Credit is
- * mainly to Erik Huizinga and Tenfour04.
+ * return value from a Set to a Sequence, for both order-stability and working
+ * with large products. Credit is mainly to Erik Huizinga and Tenfour04.
  */
-fun <T> Collection<Iterable<T>>.getCartesianProduct(): List<List<T>> {
+fun <T> Collection<Iterable<T>>.getCartesianProduct(): Sequence<List<T>> {
     return if (isEmpty()) {
-        emptyList()
+        emptySequence()
     } else {
-        // Turn the first iterable into a list of single-item lists. Each of
+        // Turn the first iterable into a sequence of single-item lists. Each of
         // these will be the seed that items from remaining iterables will be
         // added onto. This is the beginning of the product.
-        val seeds = first().map(::listOf)
+        val seeds = first().map(::listOf).asSequence()
         // For each remaining iterable, expand the product by combining each
         // element of the existing product with everything in the iterable.
         drop(1).fold(seeds) { product, nextIterable ->
@@ -165,7 +165,7 @@ fun primesToDivisors(primeFactors: Map<Long, Int>): List<Long> {
     }
     // Get the Cartesian product, e.g. [[1,1,1], [1,1,5], [1,3,1], [1,3,5]...]
     // and take the product of each sublist. This produces all divisors.
-    return powers.getCartesianProduct().map { xs -> xs.reduce(Long::times) }
+    return powers.getCartesianProduct().map { xs -> xs.reduce(Long::times) }.toList()
 }
 
 /**
@@ -226,8 +226,11 @@ fun nonAscending(l: List<Int>): Boolean {
  * exponents for those primes.
  *
  * Each sublist is of length [primesK] and is a positive non-ascending sequence.
+ *
+ * Using a Sequence here is required to avoid out-of-memory errors starting in
+ * the vicinity of 2e12.
  */
-fun minTauExponents(n: Long, primesK: Int): List<List<Int>> {
+fun minTauExponents(n: Long, primesK: Int): Sequence<List<Int>> {
     // Divide n by all primes since we know there will be at least one of each.
     val reducedN = primeSeq().take(primesK).fold(n.toDouble()) { reduced, p -> reduced / p }
     // log2 of this reduced-n value tells us how many more 2s will fit (2 having
@@ -395,8 +398,8 @@ fun findRecords(): Iterator<RecordSetter> {
 }
 
 fun Sequence<Long>.product(): Long = fold(1) { acc, n -> acc * n }
-fun List<Double>.product(): Double = fold(1.0) { acc, n -> acc * n }
-fun List<Int>.product(): Int = fold(1) { acc, n -> acc * n }
+fun Iterable<Double>.product(): Double = fold(1.0) { acc, n -> acc * n }
+fun Iterable<Int>.product(): Int = fold(1) { acc, n -> acc * n }
 
 /**
  * Find and print all n that produce record-setting

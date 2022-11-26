@@ -83,18 +83,18 @@ class ZarembaTest {
     @Test
     fun cartesianProductTest() {
         // Base case: No iterables
-        assertEquals(emptyList(), emptyList<List<Int>>().getCartesianProduct())
+        assertEquals(emptyList(), emptyList<List<Int>>().getCartesianProduct().toList())
 
         // Trivial case: An iterable is empty
         assertEquals(
             emptyList(),
-            listOf(listOf(1, 2, 4), emptyList(), listOf(1, 5)).getCartesianProduct()
+            listOf(listOf(1, 2, 4), emptyList(), listOf(1, 5)).getCartesianProduct().toList()
         )
 
         // Trivial case: All single-element
         assertEquals(
             listOf(listOf(1, 2, 3)),
-            listOf(listOf(1), listOf(2), listOf(3)).getCartesianProduct()
+            listOf(listOf(1), listOf(2), listOf(3)).getCartesianProduct().toList()
         )
 
         // General case
@@ -104,7 +104,7 @@ class ZarembaTest {
                 listOf(2, 1, 1), listOf(2, 1, 5), listOf(2, 3, 1), listOf(2, 3, 5),
                 listOf(4, 1, 1), listOf(4, 1, 5), listOf(4, 3, 1), listOf(4, 3, 5),
             ),
-            listOf(listOf(1, 2, 4), listOf(1, 3), listOf(1, 5)).getCartesianProduct()
+            listOf(listOf(1, 2, 4), listOf(1, 3), listOf(1, 5)).getCartesianProduct().toList()
         )
     }
 
