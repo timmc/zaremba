@@ -576,12 +576,7 @@ fun doLatex(zJsonFile: String, vJsonFile: String) {
 
 fun doFactor(n: Long) {
     val factorization = factorGeneric(n).toSortedMap()
-    // The sparkline will make the most sense with waterfall numbers...
-    val levels = listOf("̲ ", '▁', '▂', '▃', '▄', '▅', '▆', '▇')
-    val sparkline = factorization.values.joinToString("") {
-        levels[it - 1].toString()
-    }
-    println("Factors: $sparkline ${factorization.map { (k, v) -> "$k^$v" }.joinToString(" * ")}")
+    println("Factors: ${factorization.map { (k, v) -> "$k^$v" }.joinToString(" * ")}")
 }
 
 fun dieWithUsage(): Nothing {
