@@ -62,6 +62,11 @@ val primes = PrimesFinder()
 fun primeSeq() = primes.iterator().asSequence()
 
 /**
+ * Get the [n]th prime, with 1-based indexing.
+ */
+fun nthPrime(n: Int): Long = primeSeq().elementAt(n - 1)
+
+/**
  * Produce the prime factorization of an integer.
  *
  * This is optimized for working with waterfall numbers, and may be slow in the
@@ -190,20 +195,22 @@ fun doSingle(n: Long) {
 }
 
 /**
- * Given record-setter z(n), find new step-size for looking for new
+ * Given record-setter z(n), find new step-size pK for looking for new
  * record-setters.
+ *
+ * @returns Number of primes in step size
  */
-fun zStep(recordZ: Double): Long {
-    var ret = 1L // 2 * 3 * ... * p
+fun zStepPk(recordZ: Double): Int {
+    var stepPk = 0
     var mertensProduct = 1.0 // 2/1 * 3/2 * ... * p/(p-1)
     for (prime in primeSeq()) {
-        ret = Math.multiplyExact(ret, prime)
+        stepPk += 1
         mertensProduct *= prime/(prime - 1.0)
         val boundsTest = mertensProduct * ln(prime.toDouble()) // TODO erdos(p)
         // If this prime pushes us past the z bound, it's the last in the prime
         // product that we'll use for step-sizes.
         if (boundsTest > recordZ) {
-            return ret
+            return stepPk
         }
     }
     // Needed in case the primes iterator breaks in a weird way on large numbers
@@ -354,6 +361,32 @@ fun vStepPk(n: Long, recordV: Double, vStepPkLast: Int): Int {
     }
 }
 
+/**
+ * If steps are divisible by the first k primes, they are also divisible by the
+ * first l primes. Returns l, which might be zero.
+ */
+fun pkHighestDoubleFactor(k: Int): Int {
+    val pK = nthPrime(k).toDouble()
+    return primeSeq().takeWhile { pLInt ->
+        val pL = pLInt.toDouble()
+        val lnPL = ln(pL)
+        val c1 = pK > pL * (pL + 1)
+        val c2LHS = lnPL*(pL + 3)/pL // factored a little differently in the paper
+        val c2RHS = lnPL*(pK + 1)/pK + ln(pK)/pK*(pL + 1)
+        c1 && c2LHS>= c2RHS
+    }.count()
+}
+
+/**
+ * Produce the step size we can take if all record-setting n are divisible by
+ * the first [k] primes.
+ */
+fun pkToStep(k: Int): Long {
+    val l = pkHighestDoubleFactor(k)
+    // We get to double-dip on the first l primes
+    return (primeSeq().take(k) + primeSeq().take(l)).product()
+}
+
 data class RecordSetterZ(
     val n: Long,
     val z: Double,
@@ -384,7 +417,8 @@ fun findRecordsZ(): Iterator<RecordSetterZ> {
                 record = max(z, record)
 
                 if (isRecord) {
-                    stepSize = zStep(recordZ=record)
+                    val stepPk = zStepPk(recordZ=record)
+                    stepSize = pkToStep(stepPk)
                     yield(RecordSetterZ(
                         n = n, z = z, tau = tau, step = stepSize,
                     ))
@@ -425,9 +459,10 @@ data class RecordSetterV(
  */
 fun findRecordsV(): Iterator<RecordSetterV> {
     return iterator {
+        var nextRecalc: Long = 1000 // periodically trigger recomputation of step size
         var n = 2L // v(1) is undefined
         var stepPk = 0 // number of primes to multiply for the v step size
-        var stepSize = 1L // *actual* step size to use, based on vStepPk
+        var stepSize = 1L // *actual* step size to use, based on stepPk
 
         var record = 0.0
         while (true) {
@@ -439,10 +474,20 @@ fun findRecordsV(): Iterator<RecordSetterV> {
                 val isRecordV = record > 0 && v > record
                 record = max(v, record)
 
-                if (isRecordV) {
-                    stepPk = vStepPk(n=n, recordV=record, vStepPkLast=stepPk)
-                    stepSize = primeSeq().take(stepPk).product()
+                // V gets rare much faster than Z, so periodically recompute
+                // step size even when there isn't a record.
+                if (isRecordV || n > nextRecalc) {
+                    if (n > nextRecalc)
+                        System.err.println("Recalculating step size (n=$n, step=$stepSize)")
 
+                    stepPk = vStepPk(n = n, recordV = record, vStepPkLast = stepPk)
+                    stepSize = pkToStep(stepPk)
+
+                    // Every million iterations
+                    nextRecalc = n + 10_000 * stepSize
+                }
+
+                if (isRecordV) {
                     yield(RecordSetterV(
                         n = n, v = v, z = z, tau = tau, step = stepSize,
                     ))

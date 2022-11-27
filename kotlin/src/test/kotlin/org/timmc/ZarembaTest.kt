@@ -2,7 +2,6 @@ package org.timmc
 
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFails
 import kotlin.test.assertTrue
 
 class ZarembaTest {
@@ -137,7 +136,8 @@ class ZarembaTest {
     @Test
     fun stepSizeAfterRecordZTest() {
         val z360 = zarembaAndTau(factorGeneric(360)).first
-        assertEquals(30, zStep(z360))
+        assertEquals(3, zStepPk(z360))
+        assertEquals(30, pkToStep(zStepPk(z360)))
     }
 
     @Test
@@ -295,8 +295,42 @@ class ZarembaTest {
     }
 
     @Test
-    fun stepSizeAfterRecordVTest() {
+    fun vStepPkTest() {
         assertEquals(3, vStepPk(n=1102701600, recordV=1.6546758215862982, vStepPkLast=2))
+    }
+
+    @Test
+    fun pkHighestDoubleFactorTest() {
+        /**
+         * For a given k, returns p_k and p_l
+         */
+        fun check(k: Int): Pair<Int, Int?> {
+            val l = pkHighestDoubleFactor(k)
+            val pK = nthPrime(k)
+            return pK.toInt() to if (l == 0)
+                null
+            else
+                nthPrime(l).toInt()
+        }
+
+        assertEquals(2 to null, check(1))
+        assertEquals(3 to null, check(2))
+        assertEquals(5 to null, check(3))
+        assertEquals(7 to 2, check(4))
+
+        assertEquals(11 to 2, check(5))
+        assertEquals(13 to 3, check(6))
+
+        assertEquals(29 to 3, check(10))
+        assertEquals(31 to 5, check(11))
+
+        assertEquals(53 to 5, check(16))
+        assertEquals(59 to 7, check(17))
+    }
+
+    @Test
+    fun pkToStep() {
+        assertEquals(2 * 2*3*5*7, pkToStep(4))
     }
 
     @Test
