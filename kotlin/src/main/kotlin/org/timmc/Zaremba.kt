@@ -14,10 +14,17 @@
 
 package org.timmc
 
+import com.squareup.moshi.Moshi
+import com.squareup.moshi.adapter
+import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
+import kotlin.io.path.Path
+import kotlin.io.path.readLines
 import kotlin.math.ln
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.system.exitProcess
+
+val moshi: Moshi = Moshi.Builder().addLast(KotlinJsonAdapterFactory()).build()
 
 class PrimesFinder: Iterable<Long> {
     val known = mutableListOf(2L)
@@ -359,73 +366,114 @@ fun minStep(stepA: Long, stepB: Long): Long {
     return min(stepA, stepB)
 }
 
-data class RecordSetter(
+data class RecordSetterZ(
     val n: Long,
     val z: Double,
-    val v: Double,
-    val type: String,
     val tau: Int,
-    val stepSize: Long,
-    val stepSizeFromV: Long,
+    val step: Long,
 )
 
 /**
- * Yield all n that produce record-setting values for z(n) or v(n).
+ * Yield all n that produce record-setting values for z(n).
  *
  * Eventually overflows Long and crashes, if you get that far.
  *
  * Assumes that all record-setters will be waterfall numbers, so don't even do
  * those computations if waterfall factorization fails.
  */
-fun findRecords(): Iterator<RecordSetter> {
+fun findRecordsZ(): Iterator<RecordSetterZ> {
     return iterator {
         var n = 1L
-        var vStepPk = 0 // number of primes to multiply for the v step size
-        var stepSize = 1L // *actual* step size to use, based on z and v steps
+        var stepSize = 1L
 
-        var recordZ = 0.0
-        var recordV = 0.0
+        var record = 0.0
         while (true) {
             val primeFactors = factorWaterfall(n)
             if (primeFactors != null) {
                 val (z, tau) = zarembaAndTau(primeFactors)
 
-                val v = z / ln(tau.toDouble())
+                val isRecord = record > 0 && z > record
+                record = max(z, record)
 
-                val isRecordZ = recordZ > 0 && z > recordZ
-                val isRecordV = recordV > 0 && v > recordV
-
-                recordZ = max(z, recordZ)
-                recordV = if (v.isNaN()) { // NaN for n = 1...
-                    recordV
-                } else {
-                    max(v, recordV)
-                }
-
-                val recordType = when {
-                    isRecordZ && isRecordV -> "both"
-                    isRecordZ && !isRecordV -> "z"
-                    !isRecordZ && isRecordV -> "v"
-                    else -> null
-                }
-
-                if (isRecordZ || isRecordV) {
-                    // Calculate new step size for both Z and V even if only one
-                    // changed, just because that's easier.
-                    val zStepNew = zStep(recordZ=recordZ)
-                    vStepPk = vStepPk(n=n, recordV=recordV, vStepPkLast=vStepPk)
-                    val vStepNew = primeSeq().take(vStepPk).product()
-                    stepSize = minStep(zStepNew, vStepNew)
-
-                    yield(RecordSetter(
-                        n = n, z = z, v = v, type = recordType!!,
-                        tau = tau, stepSize = stepSize,
-                        stepSizeFromV = vStepNew,
+                if (isRecord) {
+                    stepSize = zStep(recordZ=record)
+                    yield(RecordSetterZ(
+                        n = n, z = z, tau = tau, step = stepSize,
                     ))
                 }
             }
             n += stepSize
         }
+    }
+}
+
+/**
+ * Find and print all n that produce record-setters for z(n).
+ */
+fun doRecordsZ() {
+    @OptIn(ExperimentalStdlibApi::class)
+    val jsonZ = moshi.adapter<RecordSetterZ>()
+
+    findRecordsZ().forEach { r ->
+        println(jsonZ.toJson(r))
+    }
+}
+
+data class RecordSetterV(
+    val n: Long,
+    val v: Double,
+    val z: Double,
+    val tau: Int,
+    val step: Long,
+)
+
+/**
+ * Yield all n that produce record-setting values for v(n).
+ *
+ * Eventually overflows Long and crashes, if you get that far.
+ *
+ * Assumes that all record-setters will be waterfall numbers, so don't even do
+ * those computations if waterfall factorization fails.
+ */
+fun findRecordsV(): Iterator<RecordSetterV> {
+    return iterator {
+        var n = 2L // v(1) is undefined
+        var stepPk = 0 // number of primes to multiply for the v step size
+        var stepSize = 1L // *actual* step size to use, based on vStepPk
+
+        var record = 0.0
+        while (true) {
+            val primeFactors = factorWaterfall(n)
+            if (primeFactors != null) {
+                val (z, tau) = zarembaAndTau(primeFactors)
+                val v = z / ln(tau.toDouble())
+
+                val isRecordV = record > 0 && v > record
+                record = max(v, record)
+
+                if (isRecordV) {
+                    stepPk = vStepPk(n=n, recordV=record, vStepPkLast=stepPk)
+                    stepSize = primeSeq().take(stepPk).product()
+
+                    yield(RecordSetterV(
+                        n = n, v = v, z = z, tau = tau, step = stepSize,
+                    ))
+                }
+            }
+            n += stepSize
+        }
+    }
+}
+
+/**
+ * Find and print all n that produce record-setters for v(n).
+ */
+fun doRecordsV() {
+    @OptIn(ExperimentalStdlibApi::class)
+    val jsonV = moshi.adapter<RecordSetterV>()
+
+    findRecordsV().forEach { r ->
+        println(jsonV.toJson(r))
     }
 }
 
@@ -438,23 +486,58 @@ fun <T> List<T>.swapAt(at: Int, mapper: (T) -> T): List<T> {
 }
 
 /**
- * Find and print all n that produce record-setting
- * values for z(n) or v(n).
- *
- * Eventually overflows Long and crashes, if you get that far.
+ * Combine z/v outputs and print for LaTeX table
  */
-fun doRecords(variantStr: String) {
-    when (variantStr) {
-        "classic" -> findRecords().forEach { r ->
-            println("${r.n}\trecord=${r.type}\tz(n) = ${r.z}\ttau(n) = ${r.tau}\tv(n) = ${r.v}\tstep=${r.stepSize}")
+fun doLatex(zJsonFile: String, vJsonFile: String) {
+    @OptIn(ExperimentalStdlibApi::class)
+    val json = moshi.adapter<Map<String, Double>>()
+
+    fun read(path: String): Map<Long, Map<String, Double>> {
+        return Path(path).readLines().map { json.fromJson(it)!! }
+            .associateBy { it["n"]!!.toLong() }
+    }
+
+    val zByN = read(zJsonFile)
+    val vByN = read(vJsonFile)
+
+    val onlyV = vByN.keys.minus(zByN.keys).sorted()
+    if (onlyV.isNotEmpty()) {
+        println("===========================================================")
+        println("Record-setting n for V that were not in Z: $onlyV")
+        if (vByN.keys.max() > zByN.keys.max())
+            println("...but that's probably because the Z records are incomplete")
+        println("===========================================================")
+    }
+
+    val allN = zByN.keys.plus(vByN.keys).sorted()
+    println("n & z(n) & tau(n) & v(n) & type of record & z step & v step")
+    for (n in allN) {
+        val zRec = zByN[n]
+        val vRec = vByN[n]
+        val recordType = when {
+            zRec != null && vRec == null -> "Z"
+            zRec == null && vRec != null -> "V"
+            zRec != null && vRec != null -> "both"
+            else -> throw AssertionError("Unexpected N value")
         }
-        "latex" -> {
-            println("n & z(n) & tau(n) & v(n) & type of record & step size in effect & step size from v")
-            findRecords().forEach { r ->
-                println("${r.n} & ${r.z} & ${r.tau} & ${r.v} & ${r.type} & ${r.stepSize} & ${r.stepSizeFromV}")
+
+        fun lookup(key: String): Double? {
+            val all = listOfNotNull(zRec, vRec).mapNotNull { it[key] }
+            if (all.size > 1 && all.any { it != all[0] }) {
+                throw RuntimeException("For n=$n, field '$key' did not match")
             }
+            return all.getOrNull(0)
         }
-        else -> dieWithUsage()
+
+        println(listOf(
+            n,
+            lookup("z")!!,
+            lookup("tau")!!.toInt(),
+            lookup("v"),
+            recordType,
+            zRec?.get("step")?.toInt(),
+            vRec?.get("step")?.toInt(),
+        ).map { it ?: "" }.joinToString(" & "))
     }
 }
 
@@ -472,7 +555,8 @@ fun dieWithUsage(): Nothing {
     println("""
       Usage:
         ./zaremba single <n>
-        ./zaremba records [classic | latex]
+        ./zaremba records [z|v]
+        ./zaremba latex
         ./zaremba factor <n>
     """.trimIndent())
     exitProcess(1)
@@ -491,7 +575,18 @@ fun main(args: Array<String>) {
         "records" -> {
             if (args.size != 2)
                 dieWithUsage()
-            doRecords(args[1])
+            // These are computed separately because one runs much faster than
+            // the other.
+            when (args[1]) {
+                "z" -> doRecordsZ()
+                "v" -> doRecordsV()
+                else -> dieWithUsage()
+            }
+        }
+        "latex" -> {
+            if (args.size != 3)
+                dieWithUsage()
+            doLatex(args[1], args[2])
         }
         "factor" -> {
             if (args.size != 2)

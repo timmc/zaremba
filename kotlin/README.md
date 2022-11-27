@@ -1,8 +1,11 @@
 A Kotlin version.
 
+Build, and calculate records for z(n) and v(n) for a minute each:
+
 ```bash
 mvn package
-java -jar target/zaremba-*-jar-with-dependencies.jar records classic
+timeout 1m time java -jar target/zaremba-*-jar-with-dependencies.jar records v | tee records-v.txt
+timeout 1m time java -jar target/zaremba-*-jar-with-dependencies.jar records z | tee records-z.txt
 ```
 
 TODO:

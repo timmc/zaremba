@@ -310,14 +310,38 @@ class ZarembaTest {
     }
 
     @Test
-    fun findRecordsTest() {
+    fun findRecordsZTest() {
         assertEquals(
             listOf(
-                RecordSetter(n=4, z=0.6931471805599453, v=0.6309297535714574, type="both", tau=3, stepSize=2, stepSizeFromV = 2),
-                RecordSetter(n=6, z=1.0114042647073518, v=0.7295739585136225, type="both", tau=4, stepSize=2, stepSizeFromV = 2),
-                RecordSetter(n=12, z=1.5650534091363246, v=0.8734729387592397, type="both", tau=6, stepSize=6, stepSizeFromV = 6),
+                RecordSetterZ(n=4, z=0.6931471805599453, tau=3, step=2),
+                RecordSetterZ(n=6, z=1.0114042647073518, tau=4, step=2),
+                RecordSetterZ(n=12, z=1.5650534091363246, tau=6, step=6),
+                RecordSetterZ(n=24, z=1.9574025114441351, tau=8, step=6),
+                RecordSetterZ(n=36, z=2.0693078747916944, tau=9, step=6),
+                RecordSetterZ(n=48, z=2.2113393276447026, tau=10, step=6),
+                RecordSetterZ(n=60, z=2.6291351167661694, tau=12, step=6),
+                RecordSetterZ(n=120, z=3.1536019699500124, tau=16, step=6),
+                RecordSetterZ(n=180, z=3.296829727702829, tau=18, step=30),
             ),
-            findRecords().asSequence().take(3).toList()
+            findRecordsZ().asSequence().take(9).toList()
+        )
+    }
+
+    @Test
+    fun findRecordsVTest() {
+        assertEquals(
+            listOf(
+                RecordSetterV(n=4, v=0.6309297535714574, z=0.6931471805599453, tau=3, step=2),
+                RecordSetterV(n=6, v=0.7295739585136225, z=1.0114042647073518, tau=4, step=2),
+                RecordSetterV(n=12, v=0.8734729387592397, z=1.5650534091363246, tau=6, step=6),
+                RecordSetterV(n=24, v=0.9413116320946855, z=1.9574025114441351, tau=8, step=6),
+                RecordSetterV(n=36, v=0.9417825998016082, z=2.0693078747916944, tau=9, step=6),
+                RecordSetterV(n=48, v=0.9603724676117413, z=2.2113393276447026, tau=10, step=6),
+                RecordSetterV(n=60, v=1.0580418049066245, z=2.6291351167661694, tau=12, step=6),
+                RecordSetterV(n=120, v=1.1374214807461371, z=3.1536019699500124, tau=16, step=6),
+                RecordSetterV(n=180, v=1.140624806721235, z=3.296829727702829, tau=18, step=6),
+            ),
+            findRecordsV().asSequence().take(9).toList()
         )
     }
 }
