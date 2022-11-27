@@ -477,13 +477,14 @@ fun findRecordsV(): Iterator<RecordSetterV> {
                 // V gets rare much faster than Z, so periodically recompute
                 // step size even when there isn't a record.
                 if (isRecordV || n > nextRecalc) {
-                    if (n > nextRecalc)
-                        System.err.println("Recalculating step size (n=$n, step=$stepSize)")
-
                     stepPk = vStepPk(n = n, recordV = record, vStepPkLast = stepPk)
                     stepSize = pkToStep(stepPk)
 
-                    // Every million iterations
+                    if (n > nextRecalc)
+                        System.err.println("Recalculated step size: n=$n, step=$stepSize")
+
+                    // Every N iterations -- not too frequently, since
+                    // recalculating has its own cost.
                     nextRecalc = n + 10_000 * stepSize
                 }
 
