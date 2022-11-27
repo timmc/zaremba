@@ -1,4 +1,4 @@
-$ time java -jar target/zaremba-*-jar-with-dependencies.jar records 
+$ time java -jar target/zaremba-*-jar-with-dependencies.jar records classic
 4	record=both	z(n) = 0.6931471805599453	tau(n) = 3	v(n) = 0.6309297535714574	step=2
 6	record=both	z(n) = 1.0114042647073518	tau(n) = 4	v(n) = 0.7295739585136225	step=2
 12	record=both	z(n) = 1.5650534091363246	tau(n) = 6	v(n) = 0.8734729387592397	step=6
@@ -70,21 +70,15 @@ $ time java -jar target/zaremba-*-jar-with-dependencies.jar records
 963761198400	record=z	z(n) = 14.96078376959392	tau(n) = 6720	v(n) = 1.697611432956445	step=2310
 1124388064800	record=z	z(n) = 15.005991789605918	tau(n) = 6912	v(n) = 1.6973156317382547	step=2310
 1927522396800	record=z	z(n) = 15.114528244214418	tau(n) = 7680	v(n) = 1.6894584161675266	step=30030
-Exception in thread "main" java.lang.OutOfMemoryError: Java heap space
-	at java.base/java.util.Arrays.copyOf(Arrays.java:3689)
-	at java.base/java.util.ArrayList.toArray(ArrayList.java:401)
-	at java.base/java.util.ArrayList.addAll(ArrayList.java:702)
-	at kotlin.collections.CollectionsKt___CollectionsKt.plus(_Collections.kt:3227)
-	at org.timmc.ZarembaKt.getCartesianProduct(Zaremba.kt:137)
-	at org.timmc.ZarembaKt.minTauExponents(Zaremba.kt:229)
-	at org.timmc.ZarembaKt.minTau(Zaremba.kt:255)
-	at org.timmc.ZarembaKt.newVStepSizePrimesCount(Zaremba.kt:286)
-	at org.timmc.ZarembaKt$findRecords$1.invokeSuspend(Zaremba.kt:355)
-	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:33)
-	at kotlin.sequences.SequenceBuilderIterator.hasNext(SequenceBuilder.kt:129)
-	at org.timmc.ZarembaKt.doRecords(Zaremba.kt:498)
-	at org.timmc.ZarembaKt.main(Zaremba.kt:428)
-
-real	14m52.159s
-user	25m9.243s
-sys	0m8.224s
+2248776129600	record=z	z(n) = 15.286212094623194	tau(n) = 8064	v(n) = 1.6993809575575591	step=30030
+3373164194400	record=z	z(n) = 15.317866917412017	tau(n) = 8640	v(n) = 1.6899382326482713	step=30030
+4497552259200	record=z	z(n) = 15.442133591869041	tau(n) = 9216	v(n) = 1.6916033729345097	step=30030
+4658179125600	record=z	z(n) = 15.532888047165569	tau(n) = 9216	v(n) = 1.701545039464922	step=30030
+6746328388800	record=z	z(n) = 15.601905131290353	tau(n) = 10080	v(n) = 1.6924910964782531	step=30030
+9316358251200	record=z	z(n) = 15.819921876477741	tau(n) = 10752	v(n) = 1.7042101167364407	step=30030
+13974537376800	record=z	z(n) = 15.85220556834494	tau(n) = 11520	v(n) = 1.695089488250149	step=30030
+18632716502400	record=z	z(n) = 15.979508397400322	tau(n) = 12288	v(n) = 1.6969908838209302	step=30030
+^C
+real	15m11.020s
+user	15m7.842s
+sys	0m1.689s

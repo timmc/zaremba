@@ -4,13 +4,13 @@
  * - `Pk` is the kth prime, and is usually used when the first k primes are to
  *   be multiplied together; `zStepPk` refers to the number of primes that must
  *   be multiplied to form the step size for z.
+ * - `Waterfall` refers to either a number in A025487, or the list of exponents
+ *   themselves.
  */
 
 package org.timmc
 
-import kotlin.math.ceil
 import kotlin.math.ln
-import kotlin.math.log2
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.system.exitProcess
@@ -161,7 +161,7 @@ fun primesToDivisors(primeFactors: Map<Long, Int>): List<Long> {
     // Make a list of powers lists. E.g. for {2:4, 3:2, 5:1} this would produce
     // [[1,2,4,8,16], [1,3,9], [1,5]]
     val powers = primeFactors.map { (prime, repeat) ->
-        generateSequence(1L) { it * prime }.take(repeat + 1).toList()
+        generateSequence(1L) { Math.multiplyExact(it, prime) }.take(repeat + 1).toList()
     }
     // Get the Cartesian product, e.g. [[1,1,1], [1,1,5], [1,3,1], [1,3,5]...]
     // and take the product of each sublist. This produces all divisors.
@@ -194,7 +194,7 @@ fun zStep(recordZ: Double): Long {
     var ret = 1L // 2 * 3 * ... * p
     var mertensProduct = 1.0 // 2/1 * 3/2 * ... * p/(p-1)
     for (prime in primeSeq()) {
-        ret *= prime
+        ret = Math.multiplyExact(ret, prime)
         mertensProduct *= prime/(prime - 1.0)
         val boundsTest = mertensProduct * ln(prime.toDouble()) // TODO erdos(p)
         // If this prime pushes us past the z bound, it's the last in the prime
@@ -207,72 +207,105 @@ fun zStep(recordZ: Double): Long {
     throw AssertionError("Ran out of primes")
 }
 
-fun nonAscending(l: List<Int>): Boolean {
-    var previous = Int.MAX_VALUE
-    for (x in l) {
-        if (x > previous) {
-            return false
-        }
-        previous = x
-    }
-    return true
-}
-
-/**
- * Helper function to generate candidate prime exponents for [minTau].
- *
- * Given an [n] we've reached, and the number [primesK] of consecutive primes
- * we're currently using in the v step size, return all possible lists of
- * exponents for those primes.
- *
- * Each sublist is of length [primesK] and is a positive non-ascending sequence.
- *
- * Using a Sequence here is required to avoid out-of-memory errors starting in
- * the vicinity of 2e12.
- */
-fun minTauExponents(n: Long, primesK: Int): Sequence<List<Int>> {
-    // Divide n by all primes since we know there will be at least one of each.
-    val reducedN = primeSeq().take(primesK).fold(n.toDouble()) { reduced, p -> reduced / p }
-    // log2 of this reduced-n value tells us how many more 2s will fit (2 having
-    // the largest possible range of exponents)
-    val maxExponent = ceil(log2(reducedN)).toInt() + 1 // "+ 1" because we already took out a 2 above
-
-    // All possible exponents for any position
-    val allExponents = (1..maxExponent).toList()
-    // Each element is a candidate list of exponents. Full list is of length
-    // maxExponent^primesK
-    val allCombos = List(primesK) { allExponents }.getCartesianProduct()
-    return allCombos.filter { candidate -> nonAscending(candidate) }
-}
-
-/**
- * Given exponents of consecutive primes starting at 2, produce the log of their
- * recomposition.
- */
-fun unfactorLog(primeExponents: List<Int>): Double {
-    return primeExponents.asSequence().zip(primeSeq()).sumOf { (exponent, prime) ->
-        exponent * ln(prime.toDouble())
-    }
-}
-
 /**
  * Given a set of prime exponents, give the number of divisors if they were
  * recomposed.
  */
-fun primesToTau(exponents: List<Int>): Int {
+fun primesToTau(exponents: List<Long>): Long {
     return exponents.map { it + 1 }.product()
 }
 
 /**
- * TODO: Compute in a more efficient way?
+ * A possible candidate for minTau. Both [product] and [usable] can be derived
+ * from [exponents] but are provided for performance, as they are already
+ * computed in the pruning logic.
  */
-fun minTau(n: Long, primesK: Int): Int {
-    val candidateExponents = minTauExponents(n, primesK)
-    val bound = ln(n.toDouble() - 1) // "- 1" to be on the safe side
-    // Filter candidates for those which would produce a number >= n, but do it
-    // log-transformed to avoid huge numbers.
-    val atLeastN = candidateExponents.filter { unfactorLog(it) >= bound }
-    return atLeastN.minOf(::primesToTau)
+data class MinTauCandidate(
+    /**
+     * Exponents of first k primes.
+     */
+    val exponents: List<Long>,
+    /**
+     * Products of first k primes raised to [exponents].
+     */
+    val product: Long,
+    /**
+     * Is this a *usable* candidate, i.e. one where the [product] is at least
+     * as large as n? (We can return unusable ones as well just for the sake of
+     * unit testing.)
+     */
+    val usable: Boolean,
+)
+
+/**
+ * Compute MinTau candidates for [n] from a list of waterfall exponents.
+ *
+ * For a given zero-based index [i] within [exponents], find further
+ * candidates by incrementing the exponent at that index and by moving to the
+ * next higher index, recursively, always maintaining the waterfall invariant.
+ *
+ * During exploration, the running [product] is maintained with is just the
+ * waterfall number represented by the exponents.
+ *
+ * Each new candidate is yielded, unless [fast] is set, in which case only
+ * candidates representing a waterfall number ≥ n are yielded.
+ *
+ * Exploration is pruned whenever a candidate's product is ≥ n.
+ *
+ * @param n is the current record-setting input
+ * @param exponents are waterfall number exponents that might be a candidate
+ * @param product is the waterfall number represented by [exponents]
+ * @param i is the current index into [exponents]
+ * @param fast controls whether only valid candidates are emitted
+ */
+fun minTauCandidates(
+    n: Long, exponents: List<Long>, product: Long, i: Int, fast: Boolean
+): Sequence<MinTauCandidate> {
+    return sequence {
+        val usable = product >= n
+        if (usable || !fast)
+            yield(MinTauCandidate(exponents, product, usable))
+        // Any higher product would *also* be at least n, but would have a
+        // higher tau and would not contribute to a minimum.
+        if (usable)
+            return@sequence
+        // Explore further to the right, if possible
+        // FIXME: Produces the same candidate multiple times, with duplication
+        //  factor approximately sqrt(primesK)
+        if (i < exponents.size - 1) {
+            yieldAll(minTauCandidates(n, exponents, product, i + 1, fast))
+        }
+        // Then, explore upwards from this p_k, if possible. We can do that iff
+        // we're at the first index or if we wouldn't violate the waterfall
+        // constraint.
+        if (i == 0 || exponents[i] < exponents[i-1]) {
+            val nextExponents = exponents.swapAt(i) { it + 1 }
+            val nextProduct = Math.multiplyExact(product, primeSeq().elementAt(i))
+            yieldAll(minTauCandidates(n, nextExponents, nextProduct, i, fast))
+        }
+    }
+}
+
+/**
+ * Base case for recursive [minTauCandidates].
+ */
+fun minTauCandidates(n: Long, primesK: Int, fast: Boolean): Sequence<MinTauCandidate> {
+    val exponents = List(primesK) {1L}
+    val product = primeSeq().take(primesK).product()
+    val i = 0
+    return minTauCandidates(n, exponents, product, i, fast)
+}
+
+/**
+ * Finds the smallest tau value of numbers meeting these criteria:
+ *
+ * - Waterfall number using the first [primesK] primes
+ * - Greater than or equal to n
+ */
+fun minTau(n: Long, primesK: Int): Long {
+    return minTauCandidates(n, primesK, fast = true)
+        .filter { it.usable } // do this even though fast=true, for safety
+        .minOf { primesToTau(it.exponents) }
 }
 
 /**
@@ -295,12 +328,14 @@ fun vStepPk(n: Long, recordV: Double, vStepPkLast: Int): Int {
     val lastStepPrimes = primeSeq().take(vStepPkLast).toList()
 
     // Merten's Product up to largest prime in current v step size
-    val mert = lastStepPrimes. map { p -> p/(p - 1.0) }.product()
+    val mert = lastStepPrimes.map { p -> p/(p - 1.0) }.product()
     // And the Erdos sum
     val erdos = lastStepPrimes.sumOf { p -> ln(p.toDouble())/(p - 1) }
-    val minTauD = minTau(n, vStepPkLast).toDouble()
+    val minTau = minTau(n, vStepPkLast)
 
-    return if (mert * erdos / ln(minTauD) <= recordV) {
+    // Multiplication by 1.0 is just to visually prove that there isn't any
+    // possible integer overflow, i.e. it's a "safe" multiplication.
+    return if (mert * 1.0 * erdos / ln(minTau.toDouble()) <= recordV) {
         val nextStepCount = vStepPkLast + 1
         val nextStep = primeSeq().take(nextStepCount).product()
 
@@ -397,9 +432,13 @@ fun findRecords(): Iterator<RecordSetter> {
     }
 }
 
-fun Sequence<Long>.product(): Long = fold(1) { acc, n -> acc * n }
+fun Sequence<Long>.product(): Long = fold(1) { acc, n -> Math.multiplyExact(acc, n) }
 fun Iterable<Double>.product(): Double = fold(1.0) { acc, n -> acc * n }
-fun Iterable<Int>.product(): Int = fold(1) { acc, n -> acc * n }
+fun Iterable<Long>.product(): Long = fold(1) { acc, n -> Math.multiplyExact(acc, n) }
+
+fun <T> List<T>.swapAt(at: Int, mapper: (T) -> T): List<T> {
+    return mapIndexed { i, v -> if (i == at) mapper(v) else v }
+}
 
 /**
  * Find and print all n that produce record-setting

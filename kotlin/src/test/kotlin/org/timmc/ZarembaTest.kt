@@ -1,10 +1,8 @@
 package org.timmc
 
 import org.junit.jupiter.api.Test
-import kotlin.math.ln
 import kotlin.test.assertEquals
 import kotlin.test.assertFails
-import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class ZarembaTest {
@@ -143,38 +141,145 @@ class ZarembaTest {
     }
 
     @Test
-    fun nonAscendingTest() {
-        assertTrue(nonAscending(emptyList()))
-        assertTrue(nonAscending(listOf(4)))
-        assertTrue(nonAscending(listOf(4, 4, 4, 3)))
-
-        assertFalse(nonAscending(listOf(4, 4, 4, 8, 4)))
-    }
-
-    @Test
-    fun minTauExponentsTest() {
-        assertEquals(
-            setOf(
-                listOf(5, 1), listOf(5, 2), listOf(5, 3), listOf(5, 4), listOf(5, 5),
-                listOf(4, 1), listOf(4, 2), listOf(4, 3), listOf(4, 4),
-                listOf(3, 1), listOf(3, 2), listOf(3, 3),
-                listOf(2, 1), listOf(2, 2),
-                listOf(1, 1),
-            ),
-            minTauExponents(n=72, primesK=2).toSet()
-        )
-    }
-
-    @Test
-    fun unfactorLogTest() {
-        assertEquals(0.0, unfactorLog(emptyList()))
-        assertEquals(ln(120.0), unfactorLog(listOf(3, 1, 1)))
-    }
-
-    @Test
     fun primesToTauTest() {
         assertEquals(1, primesToTau(emptyList()))
         assertEquals(20, primesToTau(listOf(1, 1, 4)))
+    }
+
+    private fun isWaterfall(l: List<Long>): Boolean {
+        return l.zipWithNext().all { (a, b) -> a >= b }
+    }
+
+    /**
+     * Given exponents of consecutive primes starting at 2, produce their
+     * recomposition.
+     */
+    private fun unfactor(primeExponents: List<Long>): Long {
+        return primeExponents.zip(primes)
+            .flatMap { (exp, prime) -> List(exp.toInt()) { prime } }
+            .product()
+    }
+
+    @Test
+    fun minTauCandidatesTest() {
+        // TODO Fix candidate sequence to not emit duplicates, then change sets to lists
+        assertEquals(
+            setOf(
+                MinTauCandidate(listOf(1), 2, true),
+            ),
+            minTauCandidates(2L, 1, fast=false).toSet()
+        )
+        assertEquals(
+            setOf(
+                MinTauCandidate(listOf(1, 1, 1), 30, true),
+            ),
+            minTauCandidates(2L, 3, fast=false).toSet()
+        )
+        assertEquals(
+            setOf(
+                MinTauCandidate(listOf(1), 2, false),
+                MinTauCandidate(listOf(2), 4, false),
+                MinTauCandidate(listOf(3), 8, false),
+                MinTauCandidate(listOf(4), 16, false),
+                MinTauCandidate(listOf(5), 32, false),
+                MinTauCandidate(listOf(6), 64, false),
+                MinTauCandidate(listOf(7), 128, true),
+            ),
+            minTauCandidates(72L, 1, fast=false).toSet()
+        )
+        assertEquals(
+            setOf(
+                MinTauCandidate(listOf(1, 1), 6, false),
+                MinTauCandidate(listOf(2, 1), 12, false),
+                MinTauCandidate(listOf(2, 2), 36, false),
+                MinTauCandidate(listOf(3, 1), 24, false),
+                MinTauCandidate(listOf(3, 2), 72, true),
+                MinTauCandidate(listOf(4, 1), 48, false),
+                MinTauCandidate(listOf(4, 2), 144, true),
+                MinTauCandidate(listOf(5, 1), 96, true),
+            ),
+            minTauCandidates(72L, 2, fast=false).toSet()
+        )
+        assertEquals(
+            setOf(
+                MinTauCandidate(listOf(1, 1, 1), 30, false),
+
+                MinTauCandidate(listOf(2, 1, 1), 60, false),
+                MinTauCandidate(listOf(2, 2, 1), 180, false),
+                MinTauCandidate(listOf(2, 2, 2), 900, false),
+
+                MinTauCandidate(listOf(3, 1, 1), 120, false),
+                MinTauCandidate(listOf(3, 2, 1), 360, false),
+                MinTauCandidate(listOf(3, 2, 2), 1800, false),
+                MinTauCandidate(listOf(3, 3, 1), 1080, false),
+                MinTauCandidate(listOf(3, 3, 2), 5400, false),
+                MinTauCandidate(listOf(3, 3, 3), 27000, true), // prune
+
+                MinTauCandidate(listOf(4, 1, 1), 240, false),
+                MinTauCandidate(listOf(4, 2, 1), 720, false),
+                MinTauCandidate(listOf(4, 2, 2), 3600, false),
+                MinTauCandidate(listOf(4, 3, 1), 2160, false),
+                MinTauCandidate(listOf(4, 3, 2), 10800, true), // prune
+                MinTauCandidate(listOf(4, 4, 1), 6480, false),
+                MinTauCandidate(listOf(4, 4, 2), 32400, true), // prune
+
+                MinTauCandidate(listOf(5, 1, 1), 480, false),
+                MinTauCandidate(listOf(5, 2, 1), 1440, false),
+                MinTauCandidate(listOf(5, 2, 2), 7200, false),
+                MinTauCandidate(listOf(5, 3, 1), 4320, false),
+                MinTauCandidate(listOf(5, 3, 2), 21600, true), // prune
+                MinTauCandidate(listOf(5, 4, 1), 12960, true), // prune
+
+                MinTauCandidate(listOf(6, 1, 1), 960, false),
+                MinTauCandidate(listOf(6, 2, 1), 2880, false),
+                MinTauCandidate(listOf(6, 2, 2), 14400, true), // prune
+                MinTauCandidate(listOf(6, 3, 1), 8640, false),
+                MinTauCandidate(listOf(6, 3, 2), 43200, true), // prune
+                MinTauCandidate(listOf(6, 4, 1), 25920, true), // prune
+
+                MinTauCandidate(listOf(7, 1, 1), 1920, false),
+                MinTauCandidate(listOf(7, 2, 1), 5760, false),
+                MinTauCandidate(listOf(7, 2, 2), 28800, true), // prune
+                MinTauCandidate(listOf(7, 3, 1), 17280, true), // prune
+
+                MinTauCandidate(listOf(8, 1, 1), 3840, false),
+                MinTauCandidate(listOf(8, 2, 1), 11520, true), // prune
+
+                MinTauCandidate(listOf(9, 1, 1), 7680, false),
+                MinTauCandidate(listOf(9, 2, 1), 23040, true), // prune
+
+                MinTauCandidate(listOf(10, 1, 1), 15360, true) // prune
+            ),
+            minTauCandidates(10080L, 3, fast=false).toSet()
+        )
+
+        // Check that computed values match for some large n.
+        val largeK = 7
+        val largeN = 1e17.toLong()
+        val largeSlow = minTauCandidates(largeN, largeK, fast=false).toList()
+        val largeFast = minTauCandidates(largeN, largeK, fast=true).toList()
+        largeSlow.forEach { assertTrue(
+            isWaterfall(it.exponents),
+            "Waterfall condition failed for $it"
+        )}
+        largeSlow.forEach { assertEquals(
+            it.product, unfactor(it.exponents), ".product mismatch for $it"
+        )}
+        largeSlow.forEach { assertEquals(
+            it.usable, it.product >= largeN, ".usable mismatch for $it"
+        )}
+        // The fast version is the subset with real candidates
+        assertTrue(largeSlow.toSet().containsAll(largeFast))
+        largeFast.forEach { assertTrue(
+            it.usable, "Fast version produced unusable candidate: $it"
+        )}
+        // These values are pinned to observed test outputs and have not been
+        // independently validated. They're just here for behavior-pinning and
+        // to illustrate the expected size of the candidate list, in both fast
+        // and non-fast mode.
+        // TODO: Remove distinct() when duplication bug is fixed
+        assertEquals(4517, largeSlow.distinct().size)
+        assertEquals(1351, minTauCandidates(largeN, largeK, fast=true).distinct().count())
     }
 
     @Test
@@ -184,6 +289,9 @@ class ZarembaTest {
 
         assertEquals(3, minTau(4, 1))
         assertEquals(12, minTau(72, 2))
+
+        // Observed as test output, not independently verified
+        assertEquals(1152, minTau(n=288807105787200, primesK=6))
     }
 
     @Test
