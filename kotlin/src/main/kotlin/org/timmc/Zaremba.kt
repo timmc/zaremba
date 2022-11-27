@@ -4,8 +4,12 @@
  * - `Pk` is the kth prime, and is usually used when the first k primes are to
  *   be multiplied together; `zStepPk` refers to the number of primes that must
  *   be multiplied to form the step size for z.
- * - `Waterfall` refers to either a number in A025487, or the list of exponents
- *   themselves.
+ * - `Waterfall` refers to either a number in OEIS A025487, or the list of
+ *   exponents themselves. Where p_i are the consecutive primes starting with
+ *   p_1 = 2, and n has prime factorization `p_1^a_1 * p_2^a_2 * ... * p_k^a_k`
+ *   then it is a waterfall number if `a_1 >= a_2 >= a_3 >= ... >= a_k`.
+ *   Simply put, there are no gaps in the prime factorization and the exponents
+ *   are non-ascending. For example, `10080 = (2^5)(3^2)(5^1)(7^1)`.
  */
 
 package org.timmc
@@ -54,29 +58,22 @@ fun primeSeq() = primes.iterator().asSequence()
 /**
  * Produce the prime factorization of an integer.
  *
- * This is optimized for working with A025487 numbers, and may be slow in the
+ * This is optimized for working with waterfall numbers, and may be slow in the
  * general case.
  *
- * If [assertA025487] is true, assume the number is in OEIS A025487. and fail
+ * If [assertWaterfall] is true, assume the number is in OEIS A025487, and fail
  * fast with null if the prime factors are not non-ascending, contiguous
  * prime factors starting with 2.
  *
- * A025487:
- *
- * If n has prime factorization `p_1^a_1 * p_2^a_2 * ... * p_k^a_k` (where
- * `p_1 < p_2 < p_3 < ... < p_k`) then require that `a_1 >= a_2 >= a_3 >= ... >= a_k`.
- * There must also be no prime between `p_1` and `p_k` that is not in the
- * factorization. Finally, `p_1 = 2`. For example, `10080 = (2^5)(3^2)(5^1)(7^1)`.
- *
- * @return a map of prime factors to their counts, or null if [assertA025487]
+ * @return a map of prime factors to their counts, or null if [assertWaterfall]
  *   was true but condition was violated
  */
-fun factor(n: Long, assertA025487: Boolean = false): Map<Long, Int>? {
+fun factor(n: Long, assertWaterfall: Boolean = false): Map<Long, Int>? {
     // Running remainder, and factors so far
     var remainder = n
     val factors = mutableMapOf<Long, Int>()
 
-    var previousPrimeRepeat = Int.MAX_VALUE // used for A025487 checks
+    var previousPrimeRepeat = Int.MAX_VALUE // used for waterfall checks
 
     for (prime in primeSeq()) {
         // Keep dividing n by prime until we can't
@@ -87,7 +84,7 @@ fun factor(n: Long, assertA025487: Boolean = false): Map<Long, Int>? {
         }
 
         // Check if this fails the "non-ascending" constraint
-        if (assertA025487 && repeats > previousPrimeRepeat) {
+        if (assertWaterfall && repeats > previousPrimeRepeat) {
             return null
         }
 
@@ -99,7 +96,7 @@ fun factor(n: Long, assertA025487: Boolean = false): Map<Long, Int>? {
             } else {
                 // This prime doesn't divide n, and we're not done yet. Is that
                 // a problem?
-                if (assertA025487) {
+                if (assertWaterfall) {
                     // Violates the "contiguous" constraint.
                     return null
                 }
@@ -115,17 +112,17 @@ fun factor(n: Long, assertA025487: Boolean = false): Map<Long, Int>? {
 }
 
 /**
- * Wrapper for [factor] with `assertA025487=false` that knows a null result
+ * Wrapper for [factor] with `assertWaterfall=false` that knows a null result
  * isn't possible.
  */
 fun factorGeneric(n: Long): Map<Long, Int> =
-    factor(n, assertA025487 = false)!!
+    factor(n, assertWaterfall = false)!!
 
 /**
- * Wrapper for [factor] with `assertA025487=true`.
+ * Wrapper for [factor] with `assertWaterfall=true`.
  */
-fun factorA025487(n: Long): Map<Long, Int>? =
-    factor(n, assertA025487 = true)
+fun factorWaterfall(n: Long): Map<Long, Int>? =
+    factor(n, assertWaterfall = true)
 
 /**
  * Cartesian product of zero or more iterables.
@@ -377,8 +374,8 @@ data class RecordSetter(
  *
  * Eventually overflows Long and crashes, if you get that far.
  *
- * Assumes that all record-setters will be A025487 numbers, so don't even do
- * those computations if A025487 factorization fails.
+ * Assumes that all record-setters will be waterfall numbers, so don't even do
+ * those computations if waterfall factorization fails.
  */
 fun findRecords(): Iterator<RecordSetter> {
     return iterator {
@@ -389,7 +386,7 @@ fun findRecords(): Iterator<RecordSetter> {
         var recordZ = 0.0
         var recordV = 0.0
         while (true) {
-            val primeFactors = factorA025487(n)
+            val primeFactors = factorWaterfall(n)
             if (primeFactors != null) {
                 val (z, tau) = zarembaAndTau(primeFactors)
 
@@ -463,7 +460,7 @@ fun doRecords(variantStr: String) {
 
 fun doFactor(n: Long) {
     val factorization = factorGeneric(n).toSortedMap()
-    // The sparkline will make the most sense with A025487 numbers...
+    // The sparkline will make the most sense with waterfall numbers...
     val levels = listOf("̲ ", '▁', '▂', '▃', '▄', '▅', '▆', '▇')
     val sparkline = factorization.values.joinToString("") {
         levels[it - 1].toString()

@@ -57,25 +57,25 @@ class ZarembaTest {
     }
 
     @Test
-    fun factorA025487Test() {
+    fun factorWaterfallTest() {
         // Edge case
-        assertEquals(emptyMap(), factorA025487(1))
-        assertEquals(mapOf(2L to 1), factorA025487(2))
+        assertEquals(emptyMap(), factorWaterfall(1))
+        assertEquals(mapOf(2L to 1), factorWaterfall(2))
 
-        assertEquals(mapOf(2L to 2), factorA025487(4))
+        assertEquals(mapOf(2L to 2), factorWaterfall(4))
 
         // Start with 2
-        assertEquals(null, factorA025487(3))
+        assertEquals(null, factorWaterfall(3))
 
         // Non-ascending
-        assertEquals(mapOf(2L to 4), factorA025487(16))
-        assertEquals(mapOf(2L to 4, 3L to 3), factorA025487(16 * 27))
-        assertEquals(mapOf(2L to 4, 3L to 4), factorA025487(16 * 81))
-        assertEquals(null, factorA025487(8 * 81))
+        assertEquals(mapOf(2L to 4), factorWaterfall(16))
+        assertEquals(mapOf(2L to 4, 3L to 3), factorWaterfall(16 * 27))
+        assertEquals(mapOf(2L to 4, 3L to 4), factorWaterfall(16 * 81))
+        assertEquals(null, factorWaterfall(8 * 81))
 
         // Contiguous
-        assertEquals(mapOf(2L to 1, 3L to 1, 5L to 1, 7L to 1), factorA025487(42 * 5))
-        assertEquals(null, factorA025487(42))
+        assertEquals(mapOf(2L to 1, 3L to 1, 5L to 1, 7L to 1), factorWaterfall(42 * 5))
+        assertEquals(null, factorWaterfall(42))
     }
 
     @Test
