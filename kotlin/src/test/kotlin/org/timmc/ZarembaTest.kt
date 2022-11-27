@@ -300,16 +300,6 @@ class ZarembaTest {
     }
 
     @Test
-    fun minStepTest() {
-        assertEquals(30, minStep(30, 30))
-        assertEquals(30, minStep(30, 210))
-        assertEquals(30, minStep(210, 30))
-
-        val t = assertFails { minStep(30, 40) }
-        assertEquals("Assuming stepA divides stepB or vice versa", t.message)
-    }
-
-    @Test
     fun findRecordsZTest() {
         assertEquals(
             listOf(

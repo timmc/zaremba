@@ -21,7 +21,6 @@ import kotlin.io.path.Path
 import kotlin.io.path.readLines
 import kotlin.math.ln
 import kotlin.math.max
-import kotlin.math.min
 import kotlin.system.exitProcess
 
 val moshi: Moshi = Moshi.Builder().addLast(KotlinJsonAdapterFactory()).build()
@@ -353,17 +352,6 @@ fun vStepPk(n: Long, recordV: Double, vStepPkLast: Int): Int {
         // no luck, use the old one
         vStepPkLast
     }
-}
-
-/**
- * Given two step values, produce a step size that satisfies both.
- */
-fun minStep(stepA: Long, stepB: Long): Long {
-    // If this ever throws, need to switch to using the GCD.
-    if (stepA % stepB != 0L && stepB % stepA != 0L) {
-        throw AssertionError("Assuming stepA divides stepB or vice versa")
-    }
-    return min(stepA, stepB)
 }
 
 data class RecordSetterZ(
