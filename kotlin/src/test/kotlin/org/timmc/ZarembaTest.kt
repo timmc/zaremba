@@ -334,6 +334,19 @@ class ZarembaTest {
             ),
             findRecordsZ().asSequence().take(9).toList()
         )
+
+        assertEquals(
+            listOf(
+                RecordSetterZ(n=433210658680800, z=17.01612849485301, tau=23040, step=58198140),
+                RecordSetterZ(n=577614211574400, z=17.14984918244781, tau=24576, step=58198140),
+                RecordSetterZ(n=866421317361600, z=17.321625217537015, tau=26880, step=1338557220),
+            ),
+            findRecordsZ(RecordsContinueFrom(
+                n = 391287046550400,
+                stepPk = 8,
+                record = 16.984348388710064,
+            )).asSequence().take(3).toList()
+        )
     }
 
     @Test

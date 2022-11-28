@@ -26,8 +26,6 @@ import com.squareup.moshi.Moshi
 import com.squareup.moshi.adapter
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import java.io.File
-import kotlin.io.path.Path
-import kotlin.io.path.readText
 import kotlin.math.ln
 import kotlin.math.max
 import kotlin.system.exitProcess
@@ -420,13 +418,26 @@ data class RecordSetterZ(
  * Assumes that all record-setters will be waterfall numbers, so don't even do
  * those computations if waterfall factorization fails.
  */
-fun findRecordsZ(): Iterator<RecordSetterZ> {
+fun findRecordsZ(continueFrom: RecordsContinueFrom? = null): Iterator<RecordSetterZ> {
     return iterator {
         var n = 1L
         var stepSize = 1L
         var stepExponents = emptyList<Int>()
-
         var record = 0.0
+
+        fun setStepPk(newStepPk: Int) {
+            with(pkToStep(newStepPk)) {
+                stepSize = first
+                stepExponents = second
+            }
+        }
+
+        continueFrom?.let {
+            n = it.n
+            setStepPk(it.stepPk)
+            record = it.record
+        }
+
         while (true) {
             val primeFactors = factorWaterfall(n, stepSize, stepExponents)
             if (primeFactors != null) {
@@ -436,11 +447,7 @@ fun findRecordsZ(): Iterator<RecordSetterZ> {
                 record = max(z, record)
 
                 if (isRecord) {
-                    val stepPk = zStepPk(recordZ=record)
-                    with(pkToStep(stepPk)) {
-                        stepSize = first
-                        stepExponents = second
-                    }
+                    setStepPk(zStepPk(recordZ=record))
                     yield(RecordSetterZ(
                         n = n, z = z, tau = tau, step = stepSize,
                     ))
@@ -454,11 +461,11 @@ fun findRecordsZ(): Iterator<RecordSetterZ> {
 /**
  * Find and print all n that produce record-setters for z(n).
  */
-fun doRecordsZ() {
+fun doRecordsZ(continueFrom: RecordsContinueFrom?) {
     @OptIn(ExperimentalStdlibApi::class)
     val jsonZ = moshi.adapter<RecordSetterZ>()
 
-    findRecordsZ().forEach { r ->
+    findRecordsZ(continueFrom).forEach { r ->
         println(jsonZ.toJson(r))
     }
 }
@@ -479,7 +486,7 @@ data class RecordSetterV(
  * Assumes that all record-setters will be waterfall numbers, so don't even do
  * those computations if waterfall factorization fails.
  */
-fun findRecordsV(): Iterator<RecordSetterV> {
+fun findRecordsV(continueFrom: RecordsContinueFrom? = null): Iterator<RecordSetterV> {
     return iterator {
         var n = 2L // v(1) is undefined
 
@@ -489,20 +496,18 @@ fun findRecordsV(): Iterator<RecordSetterV> {
 
         var record = 0.0
 
-        System.getenv()["ZAREMBA_CONTINUE"]?.let { continuePath ->
-            @OptIn(ExperimentalStdlibApi::class)
-            val json = moshi.adapter<Map<String, String>>()
-            val prev = json.fromJson(Path(continuePath).readText())!!
-
-            n = prev["n"]!!.toLong()
-            // You can get step_pk from the step size by factoring it and
-            // counting the primes
-            stepPk = prev["step_pk"]!!.toInt()
-            with(pkToStep(stepPk)) {
+        fun setStepPk(newStepPk: Int) {
+            stepPk = newStepPk
+            with(pkToStep(newStepPk)) {
                 stepSize = first
                 stepExponents = second
             }
-            record = prev["record"]!!.toDouble()
+        }
+
+        continueFrom?.let {
+            n = it.n
+            setStepPk(it.stepPk)
+            record = it.record
         }
 
         // Trigger recomputation of step size when n >= this
@@ -520,11 +525,7 @@ fun findRecordsV(): Iterator<RecordSetterV> {
                 // V gets rare much faster than Z, so periodically recompute
                 // step size even when there isn't a record.
                 if (isRecordV || n > recalcStepWhen) {
-                    stepPk = vStepPk(n = n, recordV = record, vStepPkLast = stepPk)
-                    with(pkToStep(stepPk)) {
-                        stepSize = first
-                        stepExponents = second
-                    }
+                    setStepPk(vStepPk(n = n, recordV = record, vStepPkLast = stepPk))
 
                     if (n > recalcStepWhen)
                         System.err.println("Recalculated step size: n=$n, step=$stepSize")
@@ -548,16 +549,22 @@ fun findRecordsV(): Iterator<RecordSetterV> {
 /**
  * Find and print all n that produce record-setters for v(n).
  */
-fun doRecordsV() {
+fun doRecordsV(continueFrom: RecordsContinueFrom?) {
     @OptIn(ExperimentalStdlibApi::class)
     val jsonV = moshi.adapter<RecordSetterV>()
 
-    findRecordsV().forEach { r ->
+    findRecordsV(continueFrom).forEach { r ->
         println(jsonV.toJson(r))
     }
 }
 
 enum class RecordsType { Z, V; }
+
+data class RecordsContinueFrom(
+    val n: Long,
+    val stepPk: Int,
+    val record: Double,
+)
 
 class RecordsCmd : CliktCommand(
     name = "records",
@@ -568,12 +575,38 @@ class RecordsCmd : CliktCommand(
         help = "Which function to compute, i.e. ${RecordsType.values().joinToString("/") { it.name.lowercase() }}"
     ).enum<RecordsType> { it.name.lowercase() }
 
+    private val continueFrom by option(
+        "--from",
+        help = """
+            Continue calculation from the checkpoint saved in this JSON file.
+
+            Format is a map of iteration state values (as strings):
+
+            - n: The input n${"\u0085"}
+            - step_pk: Number of unique primes in step size (use the factor
+              command if needed)${"\u0085"}
+            - record: The most recent record-setting output
+        """.trimIndent()
+    ).file(mustBeReadable = true)
+
     override fun run() {
+        val continueData = continueFrom?.let { f ->
+            @OptIn(ExperimentalStdlibApi::class)
+            val json = moshi.adapter<Map<String, String>>()
+            val prev = json.fromJson(f.readText())!!
+
+            RecordsContinueFrom(
+                n = prev["n"]!!.toLong(),
+                stepPk = prev["step_pk"]!!.toInt(),
+                record = prev["record"]!!.toDouble(),
+            )
+        }
+
         // These are computed separately because one runs much faster than
         // the other.
         when (which) {
-            RecordsType.Z -> doRecordsZ()
-            RecordsType.V -> doRecordsV()
+            RecordsType.Z -> doRecordsZ(continueData)
+            RecordsType.V -> doRecordsV(continueData)
         }
     }
 }
