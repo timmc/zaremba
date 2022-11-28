@@ -19,6 +19,7 @@ import com.squareup.moshi.adapter
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import kotlin.io.path.Path
 import kotlin.io.path.readLines
+import kotlin.io.path.readText
 import kotlin.math.ln
 import kotlin.math.max
 import kotlin.system.exitProcess
@@ -412,9 +413,10 @@ fun findRecordsZ(): Iterator<RecordSetterZ> {
 
                 if (isRecord) {
                     val stepPk = zStepPk(recordZ=record)
-                    val step = pkToStep(stepPk)
-                    stepSize = step.first
-                    stepExponents = step.second
+                    with(pkToStep(stepPk)) {
+                        stepSize = first
+                        stepExponents = second
+                    }
                     yield(RecordSetterZ(
                         n = n, z = z, tau = tau, step = stepSize,
                     ))
@@ -455,12 +457,32 @@ data class RecordSetterV(
  */
 fun findRecordsV(): Iterator<RecordSetterV> {
     return iterator {
-        var nextRecalc: Long = 1000 // periodically trigger recomputation of step size
         var n = 2L // v(1) is undefined
+
         var stepPk = 0 // number of primes to multiply for the v step size
         var stepSize = 1L // *actual* step size to use, based on stepPk
         var stepExponents = emptyList<Int>()
+
         var record = 0.0
+
+        System.getenv()["ZAREMBA_CONTINUE"]?.let { continuePath ->
+            @OptIn(ExperimentalStdlibApi::class)
+            val json = moshi.adapter<Map<String, String>>()
+            val prev = json.fromJson(Path(continuePath).readText())!!
+
+            n = prev["n"]!!.toLong()
+            // You can get step_pk from the step size by factoring it and
+            // counting the primes
+            stepPk = prev["step_pk"]!!.toInt()
+            with(pkToStep(stepPk)) {
+                stepSize = first
+                stepExponents = second
+            }
+            record = prev["record"]!!.toDouble()
+        }
+
+        // Trigger recomputation of step size when n >= this
+        var recalcStepWhen: Long = 1000
 
         while (true) {
             val primeFactors = factorWaterfall(n, stepSize, stepExponents)
@@ -473,18 +495,19 @@ fun findRecordsV(): Iterator<RecordSetterV> {
 
                 // V gets rare much faster than Z, so periodically recompute
                 // step size even when there isn't a record.
-                if (isRecordV || n > nextRecalc) {
+                if (isRecordV || n > recalcStepWhen) {
                     stepPk = vStepPk(n = n, recordV = record, vStepPkLast = stepPk)
-                    val step = pkToStep(stepPk)
-                    stepSize = step.first
-                    stepExponents = step.second
+                    with(pkToStep(stepPk)) {
+                        stepSize = first
+                        stepExponents = second
+                    }
 
-                    if (n > nextRecalc)
+                    if (n > recalcStepWhen)
                         System.err.println("Recalculated step size: n=$n, step=$stepSize")
 
                     // Every N iterations -- not too frequently, since
                     // recalculating has its own cost.
-                    nextRecalc = n + 10_000 * stepSize
+                    recalcStepWhen = n + 10_000 * stepSize
                 }
 
                 if (isRecordV) {
