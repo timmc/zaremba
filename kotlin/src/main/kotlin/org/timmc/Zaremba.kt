@@ -522,13 +522,15 @@ fun findRecordsV(continueFrom: RecordsContinueFrom? = null): Iterator<RecordSett
                 val isRecordV = record > 0 && v > record
                 record = max(v, record)
 
+                val doRecalc = n > recalcStepWhen
                 // V gets rare much faster than Z, so periodically recompute
                 // step size even when there isn't a record.
-                if (isRecordV || n > recalcStepWhen) {
+                if (isRecordV || doRecalc) {
                     setStepPk(vStepPk(n = n, recordV = record, vStepPkLast = stepPk))
 
-                    if (n > recalcStepWhen)
+                    if (doRecalc) {
                         System.err.println("Recalculated step size: n=$n, step=$stepSize")
+                    }
 
                     // Every N iterations -- not too frequently, since
                     // recalculating has its own cost.
