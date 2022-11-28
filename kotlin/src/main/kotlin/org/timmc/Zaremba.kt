@@ -62,26 +62,18 @@ fun nPrimesProduct(n: Int): Long {
 //  - Pre-check some larger powers of 2 and 3
 //  - Use a list or array rather than a map (require contiguous primes)
 /**
- * Produce the prime factorization of an integer.
+ * Produce the prime factorization of a waterfall number.
  *
- * This is optimized for working with waterfall numbers, and may be slow in the
- * general case.
- *
- * If [assertWaterfall] is true, assume the number is in OEIS A025487, and fail
- * fast with null if the prime factors are not non-ascending, contiguous
- * prime factors starting with 2.
- *
- * @return a map of prime factors to their counts, or null if [assertWaterfall]
- *   was true but condition was violated
+ * @return a map of prime factors to their counts, or null if not a waterfall
+ *   number
  */
-fun factor(n: Long, assertWaterfall: Boolean = false): Map<Long, Int>? {
+fun factorWaterfall(n: Long): Map<Long, Int>? {
     // Running remainder, and factors so far
     var remainder = n
     val factors = mutableMapOf<Long, Int>()
-
     var previousPrimeRepeat = Int.MAX_VALUE // used for waterfall checks
-
     var factored = false
+
     for (prime in primes) {
         // Keep dividing n by prime until we can't
         var repeats = 0
@@ -91,9 +83,8 @@ fun factor(n: Long, assertWaterfall: Boolean = false): Map<Long, Int>? {
         }
 
         // Check if this fails the "non-ascending" constraint
-        if (assertWaterfall && repeats > previousPrimeRepeat) {
+        if (repeats > previousPrimeRepeat)
             return null
-        }
 
         if (repeats == 0) {
             // This prime wasn't a factor at all. Check what that means:
@@ -101,13 +92,8 @@ fun factor(n: Long, assertWaterfall: Boolean = false): Map<Long, Int>? {
                 factored = true
                 break
             } else {
-                // This prime doesn't divide n, and we're not done yet. Is that
-                // a problem?
-                if (assertWaterfall) {
-                    // Violates the "contiguous" constraint.
-                    return null
-                }
-                // If not, just move on to the next prime.
+                // Violates the "contiguous" constraint.
+                return null
             }
         } else {
             factors[prime] = repeats
@@ -121,19 +107,6 @@ fun factor(n: Long, assertWaterfall: Boolean = false): Map<Long, Int>? {
 
     return factors.toMap()
 }
-
-/**
- * Wrapper for [factor] with `assertWaterfall=false` that knows a null result
- * isn't possible.
- */
-fun factorGeneric(n: Long): Map<Long, Int> =
-    factor(n, assertWaterfall = false)!!
-
-/**
- * Wrapper for [factor] with `assertWaterfall=true`.
- */
-fun factorWaterfall(n: Long): Map<Long, Int>? =
-    factor(n, assertWaterfall = true)
 
 /**
  * Cartesian product of zero or more iterables.
@@ -189,7 +162,12 @@ fun zarembaAndTau(primeFactors: Map<Long, Int>): Pair<Double, Int> {
 }
 
 fun doSingle(n: Long) {
-    val (z, tau) = zarembaAndTau(factorGeneric(n))
+    val factorization = factorWaterfall(n)
+    if (factorization == null) {
+        println("Not a waterfall number")
+        exitProcess(1)
+    }
+    val (z, tau) = zarembaAndTau(factorization)
     val v = z / ln(tau.toDouble())
     println("z(n) = $z\ttau(n) = $tau\tv(n) = $v")
 }
@@ -575,7 +553,11 @@ fun doLatex(zJsonFile: String, vJsonFile: String) {
 }
 
 fun doFactor(n: Long) {
-    val factorization = factorGeneric(n).toSortedMap()
+    val factorization = factorWaterfall(n)?.toSortedMap()
+    if (factorization == null) {
+        println("Not a waterfall number, cannot factor")
+        exitProcess(1)
+    }
     println("Factors: ${factorization.map { (k, v) -> "$k^$v" }.joinToString(" * ")}")
 }
 

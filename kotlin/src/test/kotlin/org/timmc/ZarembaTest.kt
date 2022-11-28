@@ -14,17 +14,6 @@ class ZarembaTest {
     }
 
     @Test
-    fun factorGenericTest() {
-        assertEquals(emptyMap(), factorGeneric(1))
-        assertEquals(mapOf(7L to 1), factorGeneric(7))
-        assertEquals(mapOf(3L to 1, 7L to 2), factorGeneric(147))
-
-        // No longer able to factor numbers like this with a small hardcoded
-        // primes list.
-        //assertEquals(mapOf(5573L to 1, 59399L to 1, 71069L to 1), factorGeneric(23526015630263))
-    }
-
-    @Test
     fun factorWaterfallTest() {
         // Edge case
         assertEquals(emptyMap(), factorWaterfall(1))
@@ -104,7 +93,7 @@ class ZarembaTest {
 
     @Test
     fun stepSizeAfterRecordZTest() {
-        val z360 = zarembaAndTau(factorGeneric(360)).first
+        val z360 = zarembaAndTau(factorWaterfall(360)!!).first
         assertEquals(3, zStepPk(z360))
         assertEquals(30, pkToStep(zStepPk(z360)))
     }
