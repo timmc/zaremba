@@ -16,23 +16,33 @@ class ZarembaTest {
     @Test
     fun factorWaterfallTest() {
         // Edge case
-        assertEquals(emptyMap(), factorWaterfall(1))
-        assertEquals(mapOf(2L to 1), factorWaterfall(2))
+        assertEquals(emptyList(), factorWaterfall(1))
+        assertEquals(listOf(1), factorWaterfall(2))
 
-        assertEquals(mapOf(2L to 2), factorWaterfall(4))
+        assertEquals(listOf(2), factorWaterfall(4))
 
         // Start with 2
         assertEquals(null, factorWaterfall(3))
 
         // Non-ascending
-        assertEquals(mapOf(2L to 4), factorWaterfall(16))
-        assertEquals(mapOf(2L to 4, 3L to 3), factorWaterfall(16 * 27))
-        assertEquals(mapOf(2L to 4, 3L to 4), factorWaterfall(16 * 81))
+        assertEquals(listOf(4), factorWaterfall(16))
+        assertEquals(listOf(4, 3), factorWaterfall(16 * 27))
+        assertEquals(listOf( 4, 4), factorWaterfall(16 * 81))
         assertEquals(null, factorWaterfall(8 * 81))
 
         // Contiguous
-        assertEquals(mapOf(2L to 1, 3L to 1, 5L to 1, 7L to 1), factorWaterfall(42 * 5))
+        assertEquals(listOf(1, 1, 1, 1), factorWaterfall(42 * 5))
         assertEquals(null, factorWaterfall(42))
+
+        // Seed that leaves a "hole" with zero-repeats. This tests the logic
+        // around picking up the seed's exponents in the repeats==0 logic.
+        // 391287046550400: [7 4 2 2 1 1 1 1 1 1]
+        // 58198140:        [2 2 1 1 1 1 1 1]
+        // Remainder:       [5 2 1 1 0 0 0 0 1 1]
+        assertEquals(
+            listOf(7, 4, 2, 2, 1, 1, 1, 1, 1, 1),
+            factorWaterfall(391287046550400, 58198140, listOf(2, 2, 1, 1, 1, 1, 1, 1))
+        )
     }
 
     @Test
@@ -68,18 +78,18 @@ class ZarembaTest {
         // Not currently supported!
         //assertEquals(listOf(1L), primesToDivisors(mapOf()))
 
-        assertEquals(setOf<Long>(1, 7), primesToDivisors(mapOf(7L to 1)).toSet())
+        assertEquals(setOf<Long>(1, 7), primesToDivisors(listOf(0, 0, 0, 1)).toSet())
         assertEquals(
             setOf<Long>(1, 2, 5, 10),
-            primesToDivisors(mapOf(2L to 1, 5L to 1)).toSet()
+            primesToDivisors(listOf(1, 0, 1)).toSet()
         )
         assertEquals(
             setOf<Long>(1, 3, 5, 9, 15, 25, 45, 75, 225),
-            primesToDivisors(mapOf(3L to 2, 5L to 2)).toSet()
+            primesToDivisors(listOf(0, 2, 2)).toSet()
         )
         assertEquals(
             setOf<Long>(1, 3, 5, 7, 9, 15, 21, 35, 45, 63, 105, 315),
-            primesToDivisors(mapOf(3L to 2, 5L to 1, 7L to 1)).toSet()
+            primesToDivisors(listOf(0, 2, 1, 1)).toSet()
         )
     }
 
@@ -88,14 +98,14 @@ class ZarembaTest {
         // This tests equality of floating point numbers, so it may break if the
         // computation is done in a different order, e.g. if the recomposition
         // of primes into divisors is unstable.
-        assertEquals(1.0114042647073518 to 4, zarembaAndTau(mapOf(2L to 1, 3L to 1)))
+        assertEquals(1.0114042647073518 to 4, zarembaAndTau(listOf(1, 1)))
     }
 
     @Test
     fun stepSizeAfterRecordZTest() {
         val z360 = zarembaAndTau(factorWaterfall(360)!!).first
         assertEquals(3, zStepPk(z360))
-        assertEquals(30, pkToStep(zStepPk(z360)))
+        assertEquals(30L to listOf(1, 1, 1), pkToStep(zStepPk(z360)))
     }
 
     @Test
@@ -289,7 +299,7 @@ class ZarembaTest {
 
     @Test
     fun pkToStep() {
-        assertEquals(2 * 2*3*5*7, pkToStep(4))
+        assertEquals((2L * 2*3*5*7) to listOf(2, 1, 1, 1), pkToStep(4))
     }
 
     @Test

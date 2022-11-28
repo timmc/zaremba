@@ -32,6 +32,7 @@ val primes = longArrayOf(
     2, 3, 5, 7, 11,
     13, 17, 19, 23, 29,
     31, 37, 41, 43, 47,
+    // Can't add more without overflowing Long!
 )
 
 /**
@@ -56,27 +57,31 @@ fun nPrimesProduct(n: Int): Long {
 }
 
 // TODO: Improve [factor]:
-//  - Always assert waterfall
-//  - Pass in the stepsize along with its factorization as a starting point
-//    (assert `n % stepSize`)
 //  - Pre-check some larger powers of 2 and 3
-//  - Use a list or array rather than a map (require contiguous primes)
 /**
  * Produce the prime factorization of a waterfall number.
  *
- * @return a map of prime factors to their counts, or null if not a waterfall
- *   number
+ * Can be jumpstarted by supplying an existing waterfall number [knownDivisor]
+ * that this one is divisible by, along with its exponents [divisorExponents].
+ *
+ * @return a list of exponents, or null if not a waterfall number
  */
-fun factorWaterfall(n: Long): Map<Long, Int>? {
+fun factorWaterfall(n: Long, knownDivisor: Long, divisorExponents: List<Int>): List<Int>? {
+    if (n % knownDivisor != 0L)
+        throw java.lang.AssertionError("Known divisor $knownDivisor did not cleanly divide $n")
+
     // Running remainder, and factors so far
-    var remainder = n
-    val factors = mutableMapOf<Long, Int>()
+    var remainder = n.div(knownDivisor)
+    val factors = divisorExponents.toMutableList()
+
     var previousPrimeRepeat = Int.MAX_VALUE // used for waterfall checks
     var factored = false
 
-    for (prime in primes) {
+    for (i in primes.indices) {
+        val prime = primes[i]
         // Keep dividing n by prime until we can't
-        var repeats = 0
+        val positionAlreadySeeded = i < factors.size
+        var repeats = if (positionAlreadySeeded) factors[i] else 0
         while (remainder % prime == 0L) {
             remainder = remainder.div(prime)
             repeats++
@@ -96,7 +101,10 @@ fun factorWaterfall(n: Long): Map<Long, Int>? {
                 return null
             }
         } else {
-            factors[prime] = repeats
+            if (positionAlreadySeeded)
+                factors[i] = repeats
+            else
+                factors.add(repeats)
         }
 
         previousPrimeRepeat = repeats
@@ -105,8 +113,10 @@ fun factorWaterfall(n: Long): Map<Long, Int>? {
     if (!factored)
         throw AssertionError("Ran out of primes when factoring")
 
-    return factors.toMap()
+    return factors
 }
+
+fun factorWaterfall(n: Long) = factorWaterfall(n, 1, emptyList())
 
 /**
  * Cartesian product of zero or more iterables.
@@ -138,25 +148,28 @@ fun <T> Collection<Iterable<T>>.getCartesianProduct(): Sequence<List<T>> {
  * Does not currently work for an empty input map (i.e. for 1), but may in the
  * future.
  */
-fun primesToDivisors(primeFactors: Map<Long, Int>): List<Long> {
+fun primesToDivisors(primeFactors: List<Int>): Sequence<Long> {
     // Make a list of powers lists. E.g. for {2:4, 3:2, 5:1} this would produce
     // [[1,2,4,8,16], [1,3,9], [1,5]]
-    val powers = primeFactors.map { (prime, repeat) ->
+    val powers = primes.zip(primeFactors).map { (prime, repeat) ->
         generateSequence(1L) { Math.multiplyExact(it, prime) }.take(repeat + 1).toList()
     }
     // Get the Cartesian product, e.g. [[1,1,1], [1,1,5], [1,3,1], [1,3,5]...]
     // and take the product of each sublist. This produces all divisors.
-    return powers.getCartesianProduct().map { xs -> xs.reduce(Long::times) }.toList()
+    return powers.getCartesianProduct().map { xs -> xs.reduce(Long::times) }
 }
 
 /**
  * Given a prime factorization, compute z(n) and tau(n), returned as a pair.
  */
-fun zarembaAndTau(primeFactors: Map<Long, Int>): Pair<Double, Int> {
+fun zarembaAndTau(primeFactors: List<Int>): Pair<Double, Int> {
     val divisors = primesToDivisors(primeFactors)
 
-    val z = divisors.sumOf { ln(it.toDouble()) / it }
-    val tau = divisors.size
+    var tau = 0
+    val z = divisors.sumOf {
+        tau += 1
+        ln(it.toDouble()) / it
+    }
 
     return z to tau
 }
@@ -356,12 +369,15 @@ fun pkHighestDoubleFactor(k: Int): Int {
 
 /**
  * Produce the step size we can take if all record-setting n are divisible by
- * the first [k] primes.
+ * the first [k] primes. Also returns the exponents of the step's factorization.
+ * (The step size is a waterfall number.)
  */
-fun pkToStep(k: Int): Long {
+fun pkToStep(k: Int): Pair<Long, List<Int>> {
     val l = pkHighestDoubleFactor(k)
     // We get to double-dip on the first l primes
-    return Math.multiplyExact(nPrimesProduct(k), nPrimesProduct(l))
+    val step = Math.multiplyExact(nPrimesProduct(k), nPrimesProduct(l))
+    val exp = List(k) { i -> if (i < l) 2 else 1 }
+    return step to exp
 }
 
 data class RecordSetterZ(
@@ -383,10 +399,11 @@ fun findRecordsZ(): Iterator<RecordSetterZ> {
     return iterator {
         var n = 1L
         var stepSize = 1L
+        var stepExponents = emptyList<Int>()
 
         var record = 0.0
         while (true) {
-            val primeFactors = factorWaterfall(n)
+            val primeFactors = factorWaterfall(n, stepSize, stepExponents)
             if (primeFactors != null) {
                 val (z, tau) = zarembaAndTau(primeFactors)
 
@@ -395,7 +412,9 @@ fun findRecordsZ(): Iterator<RecordSetterZ> {
 
                 if (isRecord) {
                     val stepPk = zStepPk(recordZ=record)
-                    stepSize = pkToStep(stepPk)
+                    val step = pkToStep(stepPk)
+                    stepSize = step.first
+                    stepExponents = step.second
                     yield(RecordSetterZ(
                         n = n, z = z, tau = tau, step = stepSize,
                     ))
@@ -440,10 +459,11 @@ fun findRecordsV(): Iterator<RecordSetterV> {
         var n = 2L // v(1) is undefined
         var stepPk = 0 // number of primes to multiply for the v step size
         var stepSize = 1L // *actual* step size to use, based on stepPk
+        var stepExponents = emptyList<Int>()
         var record = 0.0
 
         while (true) {
-            val primeFactors = factorWaterfall(n)
+            val primeFactors = factorWaterfall(n, stepSize, stepExponents)
             if (primeFactors != null) {
                 val (z, tau) = zarembaAndTau(primeFactors)
                 val v = z / ln(tau.toDouble())
@@ -455,7 +475,9 @@ fun findRecordsV(): Iterator<RecordSetterV> {
                 // step size even when there isn't a record.
                 if (isRecordV || n > nextRecalc) {
                     stepPk = vStepPk(n = n, recordV = record, vStepPkLast = stepPk)
-                    stepSize = pkToStep(stepPk)
+                    val step = pkToStep(stepPk)
+                    stepSize = step.first
+                    stepExponents = step.second
 
                     if (n > nextRecalc)
                         System.err.println("Recalculated step size: n=$n, step=$stepSize")
@@ -553,12 +575,12 @@ fun doLatex(zJsonFile: String, vJsonFile: String) {
 }
 
 fun doFactor(n: Long) {
-    val factorization = factorWaterfall(n)?.toSortedMap()
+    val factorization = factorWaterfall(n)
     if (factorization == null) {
         println("Not a waterfall number, cannot factor")
         exitProcess(1)
     }
-    println("Factors: ${factorization.map { (k, v) -> "$k^$v" }.joinToString(" * ")}")
+    println("Factors: ${primes.zip(factorization).joinToString(" * ") { (p, a) -> "$p^$a" }}")
 }
 
 fun dieWithUsage(): Nothing {
