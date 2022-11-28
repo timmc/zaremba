@@ -512,6 +512,9 @@ fun findRecordsV(continueFrom: RecordsContinueFrom? = null): Iterator<RecordSett
 
         // Trigger recomputation of step size when n >= this
         var recalcStepWhen: Long = 1000
+        // Report statistics on how fast things are moving
+        var lastRecalc = System.nanoTime()
+        var nWhenLastRecalc = n
 
         while (true) {
             val primeFactors = factorWaterfall(n, stepSize, stepExponents)
@@ -526,15 +529,20 @@ fun findRecordsV(continueFrom: RecordsContinueFrom? = null): Iterator<RecordSett
                 // V gets rare much faster than Z, so periodically recompute
                 // step size even when there isn't a record.
                 if (isRecordV || doRecalc) {
+                    val iters = (n - nWhenLastRecalc)/stepSize // compute before recalc
                     setStepPk(vStepPk(n = n, recordV = record, vStepPkLast = stepPk))
 
                     if (doRecalc) {
-                        System.err.println("Recalculated step size: n=$n, step=$stepSize")
+                        lastRecalc = System.nanoTime().also { nowNanos ->
+                            val millis = (nowNanos - lastRecalc) / 1_000_000
+                            System.err.println("Recalculated step size: n=$n, step=$stepSize, elapsed=${millis}ms, iters=$iters")
+                        }
                     }
 
                     // Every N iterations -- not too frequently, since
                     // recalculating has its own cost.
                     recalcStepWhen = n + 10_000 * stepSize
+                    nWhenLastRecalc = n
                 }
 
                 if (isRecordV) {
