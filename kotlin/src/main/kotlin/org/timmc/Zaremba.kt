@@ -14,15 +14,32 @@
 
 package org.timmc
 
+import com.github.ajalt.clikt.core.CliktCommand
+import com.github.ajalt.clikt.core.subcommands
+import com.github.ajalt.clikt.parameters.arguments.argument
+import com.github.ajalt.clikt.parameters.options.option
+import com.github.ajalt.clikt.parameters.options.required
+import com.github.ajalt.clikt.parameters.types.enum
+import com.github.ajalt.clikt.parameters.types.file
+import com.github.ajalt.clikt.parameters.types.long
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.adapter
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
+import java.io.File
 import kotlin.io.path.Path
-import kotlin.io.path.readLines
 import kotlin.io.path.readText
 import kotlin.math.ln
 import kotlin.math.max
 import kotlin.system.exitProcess
+
+
+fun Sequence<Long>.product(): Long = fold(1) { acc, n -> Math.multiplyExact(acc, n) }
+fun Iterable<Double>.product(): Double = fold(1.0) { acc, n -> acc * n }
+fun Iterable<Long>.product(): Long = fold(1) { acc, n -> Math.multiplyExact(acc, n) }
+
+fun <T> List<T>.swapAt(at: Int, mapper: (T) -> T): List<T> {
+    return mapIndexed { i, v -> if (i == at) mapper(v) else v }
+}
 
 val moshi: Moshi = Moshi.Builder().addLast(KotlinJsonAdapterFactory()).build()
 
@@ -33,7 +50,7 @@ val primes = longArrayOf(
     2, 3, 5, 7, 11,
     13, 17, 19, 23, 29,
     31, 37, 41, 43, 47,
-    // Can't add more without overflowing Long!
+    // Can't add more without overflowing Long in primesRunningProduct
 )
 
 /**
@@ -175,15 +192,22 @@ fun zarembaAndTau(primeFactors: List<Int>): Pair<Double, Int> {
     return z to tau
 }
 
-fun doSingle(n: Long) {
-    val factorization = factorWaterfall(n)
-    if (factorization == null) {
-        println("Not a waterfall number")
-        exitProcess(1)
+class SingleCommand : CliktCommand(
+    name = "single",
+    help = "Compute z(n) and v(n) for a single n",
+) {
+    private val n: Long by argument("n").long()
+
+    override fun run() {
+        val factorization = factorWaterfall(n)
+        if (factorization == null) {
+            println("Not a waterfall number")
+            exitProcess(1)
+        }
+        val (z, tau) = zarembaAndTau(factorization)
+        val v = z / ln(tau.toDouble())
+        println("z(n) = $z\ttau(n) = $tau\tv(n) = $v")
     }
-    val (z, tau) = zarembaAndTau(factorization)
-    val v = z / ln(tau.toDouble())
-    println("z(n) = $z\ttau(n) = $tau\tv(n) = $v")
 }
 
 /**
@@ -533,121 +557,122 @@ fun doRecordsV() {
     }
 }
 
-fun Sequence<Long>.product(): Long = fold(1) { acc, n -> Math.multiplyExact(acc, n) }
-fun Iterable<Double>.product(): Double = fold(1.0) { acc, n -> acc * n }
-fun Iterable<Long>.product(): Long = fold(1) { acc, n -> Math.multiplyExact(acc, n) }
+enum class RecordsType { Z, V; }
 
-fun <T> List<T>.swapAt(at: Int, mapper: (T) -> T): List<T> {
-    return mapIndexed { i, v -> if (i == at) mapper(v) else v }
+class RecordsCmd : CliktCommand(
+    name = "records",
+    help = "Find and print all n that produce a record-setter for z(n) or v(n)"
+) {
+    private val which by argument(
+        "function",
+        help = "Which function to compute, i.e. ${RecordsType.values().joinToString("/") { it.name.lowercase() }}"
+    ).enum<RecordsType> { it.name.lowercase() }
+
+    override fun run() {
+        // These are computed separately because one runs much faster than
+        // the other.
+        when (which) {
+            RecordsType.Z -> doRecordsZ()
+            RecordsType.V -> doRecordsV()
+        }
+    }
 }
 
-/**
- * Combine z/v outputs and print for LaTeX table
- */
-fun doLatex(zJsonFile: String, vJsonFile: String) {
-    @OptIn(ExperimentalStdlibApi::class)
-    val json = moshi.adapter<Map<String, Double>>()
+class LatexCommand : CliktCommand(
+    name = "latex",
+    help = "Combine z/v outputs and print for LaTeX table"
+) {
+    private val zJsonFile by option("--z").file(mustBeReadable = true).required()
+    private val vJsonFile by option("--v").file(mustBeReadable = true).required()
 
-    fun read(path: String): Map<Long, Map<String, Double>> {
-        return Path(path).readLines().map { json.fromJson(it)!! }
-            .associateBy { it["n"]!!.toLong() }
-    }
+    override fun run() {
+        @OptIn(ExperimentalStdlibApi::class)
+        val json = moshi.adapter<Map<String, Double>>()
 
-    val zByN = read(zJsonFile)
-    val vByN = read(vJsonFile)
-
-    val onlyV = vByN.keys.minus(zByN.keys).sorted()
-    if (onlyV.isNotEmpty()) {
-        println("===========================================================")
-        println("Record-setting n for V that were not in Z: $onlyV")
-        if (vByN.keys.max() > zByN.keys.max())
-            println("...but that's probably because the Z records are incomplete")
-        println("===========================================================")
-    }
-
-    val allN = zByN.keys.plus(vByN.keys).sorted()
-    println("n & z(n) & tau(n) & v(n) & type of record & z step & v step")
-    for (n in allN) {
-        val zRec = zByN[n]
-        val vRec = vByN[n]
-        val recordType = when {
-            zRec != null && vRec == null -> "Z"
-            zRec == null && vRec != null -> "V"
-            zRec != null && vRec != null -> "both"
-            else -> throw AssertionError("Unexpected N value")
+        fun read(src: File): Map<Long, Map<String, Double>> {
+            return src.readLines().map { json.fromJson(it)!! }
+                .associateBy { it["n"]!!.toLong() }
         }
 
-        fun lookup(key: String): Double? {
-            val all = listOfNotNull(zRec, vRec).mapNotNull { it[key] }
-            if (all.size > 1 && all.any { it != all[0] }) {
-                throw RuntimeException("For n=$n, field '$key' did not match")
+        val zByN = read(zJsonFile)
+        val vByN = read(vJsonFile)
+
+        val onlyV = vByN.keys.minus(zByN.keys).sorted()
+        if (onlyV.isNotEmpty()) {
+            println("===========================================================")
+            println("Record-setting n for V that were not in Z: $onlyV")
+            if (vByN.keys.max() > zByN.keys.max())
+                println("...but that's probably because the Z records are incomplete")
+            println("===========================================================")
+        }
+
+        val allN = zByN.keys.plus(vByN.keys).sorted()
+        println("n & z(n) & tau(n) & v(n) & type of record & z step & v step")
+        for (n in allN) {
+            val zRec = zByN[n]
+            val vRec = vByN[n]
+            val recordType = when {
+                zRec != null && vRec == null -> "Z"
+                zRec == null && vRec != null -> "V"
+                zRec != null && vRec != null -> "both"
+                else -> throw AssertionError("Unexpected N value")
             }
-            return all.getOrNull(0)
+
+            fun lookup(key: String): Double? {
+                val all = listOfNotNull(zRec, vRec).mapNotNull { it[key] }
+                if (all.size > 1 && all.any { it != all[0] }) {
+                    throw RuntimeException("For n=$n, field '$key' did not match")
+                }
+                return all.getOrNull(0)
+            }
+
+            println(listOf(
+                n,
+                lookup("z")!!,
+                lookup("tau")!!.toInt(),
+                lookup("v"),
+                recordType,
+                zRec?.get("step")?.toInt(),
+                vRec?.get("step")?.toInt(),
+            ).map { it ?: "" }.joinToString(" & ")
+            )
         }
-
-        println(listOf(
-            n,
-            lookup("z")!!,
-            lookup("tau")!!.toInt(),
-            lookup("v"),
-            recordType,
-            zRec?.get("step")?.toInt(),
-            vRec?.get("step")?.toInt(),
-        ).map { it ?: "" }.joinToString(" & "))
     }
 }
 
-fun doFactor(n: Long) {
-    val factorization = factorWaterfall(n)
-    if (factorization == null) {
-        println("Not a waterfall number, cannot factor")
-        exitProcess(1)
+class FactorCmd : CliktCommand(
+    name = "factor",
+    help = "Factor a waterfall number"
+) {
+    private val n: Long by argument("n").long()
+
+    override fun run() {
+        val factorization = factorWaterfall(n)
+        if (factorization == null) {
+            println("Not a waterfall number, cannot factor")
+            exitProcess(1)
+        }
+        println("Factors: ${primes.zip(factorization).joinToString(" * ") { (p, a) -> "$p^$a" }}")
     }
-    println("Factors: ${primes.zip(factorization).joinToString(" * ") { (p, a) -> "$p^$a" }}")
 }
 
-fun dieWithUsage(): Nothing {
-    println("""
-      Usage:
-        ./zaremba single <n>
-        ./zaremba records [z|v]
-        ./zaremba latex
-        ./zaremba factor <n>
-    """.trimIndent())
-    exitProcess(1)
+class Zaremba : CliktCommand(
+    name = "Zaremba",
+    help = "Tool to find z(n) and v(n) record-setters.",
+    invokeWithoutSubcommand = false,
+) {
+    override fun run() {
+        // does not run
+    }
 }
+
+val cli = Zaremba().subcommands(
+    RecordsCmd(),
+    SingleCommand(),
+    FactorCmd(),
+    LatexCommand(),
+)
 
 fun main(args: Array<String>) {
-    if (args.isEmpty())
-        dieWithUsage()
-
-    when (args[0]) {
-        "single" -> {
-            if (args.size != 2)
-                dieWithUsage()
-            doSingle(args[1].toLong())
-        }
-        "records" -> {
-            if (args.size != 2)
-                dieWithUsage()
-            // These are computed separately because one runs much faster than
-            // the other.
-            when (args[1]) {
-                "z" -> doRecordsZ()
-                "v" -> doRecordsV()
-                else -> dieWithUsage()
-            }
-        }
-        "latex" -> {
-            if (args.size != 3)
-                dieWithUsage()
-            doLatex(args[1], args[2])
-        }
-        "factor" -> {
-            if (args.size != 2)
-                dieWithUsage()
-            doFactor(args[1].toLong())
-        }
-        else -> dieWithUsage()
-    }
+    cli.main(args)
 }

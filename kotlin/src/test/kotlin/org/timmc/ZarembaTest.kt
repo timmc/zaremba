@@ -2,6 +2,7 @@ package org.timmc
 
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
 class ZarembaTest {
@@ -33,6 +34,21 @@ class ZarembaTest {
         // Contiguous
         assertEquals(listOf(1, 1, 1, 1), factorWaterfall(42 * 5))
         assertEquals(null, factorWaterfall(42))
+
+        // Seed=1
+        assertEquals(
+            listOf(3, 2, 1),
+            factorWaterfall(360, 1, emptyList())
+        )
+        // Seed=n
+        assertEquals(
+            listOf(3, 2, 1),
+            factorWaterfall(360, 360, listOf(3, 2, 1))
+        )
+
+        assertFailsWith<AssertionError> {
+            factorWaterfall(360, 210, listOf(1, 1, 1, 1))
+        }
 
         // Seed that leaves a "hole" with zero-repeats. This tests the logic
         // around picking up the seed's exponents in the repeats==0 logic.

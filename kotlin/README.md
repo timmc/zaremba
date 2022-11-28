@@ -21,7 +21,7 @@ ZAREMBA_CONTINUE=continue-v.json java -jar target/zaremba-*-jar-with-dependencie
 Combine Z and V logs for LaTeX output:
 
 ```bash
-java -jar target/zaremba-*-jar-with-dependencies.jar latex records-z.txt records-v.txt
+java -jar target/zaremba-*-jar-with-dependencies.jar latex --z records-z.txt --v records-v.txt
 ```
 
 TODO:
