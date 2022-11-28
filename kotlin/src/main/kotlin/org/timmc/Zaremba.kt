@@ -48,14 +48,14 @@ val primes = longArrayOf(
     2, 3, 5, 7, 11,
     13, 17, 19, 23, 29,
     31, 37, 41, 43, 47,
-    // Can't add more without overflowing Long in primesRunningProduct
+    // Can't add more without overflowing Long in [primorials]
 )
 
 /**
  * Cache of the running product of the first N primes, computed at startup.
  * 2, 6, 30...
  */
-val primesRunningProduct = primes.runningReduce { acc, p -> Math.multiplyExact(acc, p) }.toLongArray()
+val primorials = primes.runningReduce { acc, p -> Math.multiplyExact(acc, p) }.toLongArray()
 
 /**
  * Get the [n]th prime, with 1-based indexing.
@@ -63,13 +63,27 @@ val primesRunningProduct = primes.runningReduce { acc, p -> Math.multiplyExact(a
 fun nthPrime(n: Int): Long = primes[n - 1]
 
 /**
- * Get the product of the first [n] primes.
+ * Get the nth primorial: The product of the first [n] primes
  */
-fun nPrimesProduct(n: Int): Long {
+fun nthPrimorial(n: Int): Long {
     return if (n == 0)
         1L
     else
-        primesRunningProduct[n - 1]
+        primorials[n - 1]
+}
+
+/**
+ * Convert a list of prime factor exponents into primorial exponents.
+ */
+fun transposePrimesToPrimorials(primeExponents: List<Int>): List<Int> {
+    return (primeExponents + listOf(0)).zipWithNext(Int::minus)
+}
+
+/**
+ * Convert a list of primorial factor exponents into prime exponents.
+ */
+fun transposePrimorialsToPrimes(primorialExponents: List<Int>): List<Int> {
+    return primorialExponents.asReversed().runningReduce(Int::plus).reversed()
 }
 
 // TODO: Improve [factor]:
@@ -314,7 +328,7 @@ fun minTauCandidates(
  */
 fun minTauCandidates(n: Long, primesK: Int, fast: Boolean): Sequence<MinTauCandidate> {
     val exponents = List(primesK) {1L}
-    val product = nPrimesProduct(primesK)
+    val product = nthPrimorial(primesK)
     val i = 0
     return minTauCandidates(n, exponents, product, i, fast)
 }
@@ -360,7 +374,7 @@ fun vStepPk(n: Long, recordV: Double, vStepPkLast: Int): Int {
     // possible integer overflow, i.e. it's a "safe" multiplication.
     return if (mert * 1.0 * erdos / ln(minTau.toDouble()) <= recordV) {
         val nextStepCount = vStepPkLast + 1
-        val nextStep = nPrimesProduct(nextStepCount)
+        val nextStep = nthPrimorial(nextStepCount)
 
         if (n % nextStep == 0L) {
             nextStepCount
@@ -398,7 +412,7 @@ fun pkHighestDoubleFactor(k: Int): Int {
 fun pkToStep(k: Int): Pair<Long, List<Int>> {
     val l = pkHighestDoubleFactor(k)
     // We get to double-dip on the first l primes
-    val step = Math.multiplyExact(nPrimesProduct(k), nPrimesProduct(l))
+    val step = Math.multiplyExact(nthPrimorial(k), nthPrimorial(l))
     val exp = List(k) { i -> if (i < l) 2 else 1 }
     return step to exp
 }
@@ -695,7 +709,19 @@ class FactorCmd : CliktCommand(
             println("Not a waterfall number, cannot factor")
             exitProcess(1)
         }
-        println("Factors: ${primes.zip(factorization).joinToString(" * ") { (p, a) -> "$p^$a" }}")
+        println("Prime exponents: $factorization")
+        println("Repeated prime factors: ${primes.zip(factorization).joinToString(" * ") { (p, a) -> "$p^$a" }}")
+
+        // Transpose the factorization into primorials
+        val primorialExps = transposePrimesToPrimorials(factorization)
+        val primIndicesString = primorialExps.mapIndexedNotNull { i, exp ->
+            if (exp == 0) null else "pr(${i + 1})^$exp"
+        }.joinToString(" * ")
+        val primFactorsString = primorialExps.mapIndexedNotNull { i, exp ->
+            if (exp == 0) null else "${nthPrimorial(i + 1)}^$exp"
+        }.joinToString(" * ")
+        println("Primorial indices: $primIndicesString")
+        println("Primorial factors: $primFactorsString")
     }
 }
 
