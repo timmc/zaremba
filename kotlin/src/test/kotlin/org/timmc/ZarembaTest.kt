@@ -6,45 +6,11 @@ import kotlin.test.assertTrue
 
 class ZarembaTest {
     @Test
-    fun primesFinderTestManual() {
-        val primes = PrimesFinder()
-        assertEquals(listOf(2L), primes.known)
-        assertEquals(3, primes.findNextPrime())
-        assertEquals(5, primes.findNextPrime())
-        assertEquals(7, primes.findNextPrime())
-        assertEquals(11, primes.findNextPrime())
-        assertEquals(13, primes.findNextPrime())
-        assertEquals(17, primes.findNextPrime())
-        assertEquals(listOf(2L, 3, 5, 7, 11, 13, 17), primes.known)
-    }
-
-    @Test
-    fun primesFinderTestIterator() {
-        val primes = PrimesFinder()
-        assertEquals(listOf(2L), primes.known)
-        assertEquals(3, primes.findNextPrime())
-        assertEquals(5, primes.findNextPrime())
-
-        // Pull an iterator and check it
+    fun primesRunningProductTest() {
         assertEquals(
-            listOf(2L, 3, 5, 7, 11, 13, 17, 19),
-            primes.iterator().asSequence().take(8).toList()
+            listOf<Long>(2, 6, 30),
+            primesRunningProduct.take(3)
         )
-        assertEquals(listOf(2L, 3, 5, 7, 11, 13, 17, 19), primes.known)
-
-        // Iterate from the beginning again, but not as far (don't extend)
-        assertEquals(
-            listOf(2L, 3, 5, 7),
-            primes.iterator().asSequence().take(4).toList()
-        )
-        assertEquals(listOf(2L, 3, 5, 7, 11, 13, 17, 19), primes.known)
-
-        // Iterate farther this time
-        assertEquals(
-            listOf(2L, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31),
-            primes.iterator().asSequence().take(11).toList()
-        )
-        assertEquals(listOf(2L, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31), primes.known)
     }
 
     @Test
@@ -52,7 +18,10 @@ class ZarembaTest {
         assertEquals(emptyMap(), factorGeneric(1))
         assertEquals(mapOf(7L to 1), factorGeneric(7))
         assertEquals(mapOf(3L to 1, 7L to 2), factorGeneric(147))
-        assertEquals(mapOf(5573L to 1, 59399L to 1, 71069L to 1), factorGeneric(23526015630263))
+
+        // No longer able to factor numbers like this with a small hardcoded
+        // primes list.
+        //assertEquals(mapOf(5573L to 1, 59399L to 1, 71069L to 1), factorGeneric(23526015630263))
     }
 
     @Test
@@ -155,7 +124,7 @@ class ZarembaTest {
      * recomposition.
      */
     private fun unfactor(primeExponents: List<Long>): Long {
-        return primeExponents.zip(primes)
+        return primeExponents.zip(primes.asList())
             .flatMap { (exp, prime) -> List(exp.toInt()) { prime } }
             .product()
     }
@@ -324,8 +293,9 @@ class ZarembaTest {
         assertEquals(29 to 3, check(10))
         assertEquals(31 to 5, check(11))
 
-        assertEquals(53 to 5, check(16))
-        assertEquals(59 to 7, check(17))
+        // Can no longer go this high with hardcoded primes list
+//        assertEquals(53 to 5, check(16))
+//        assertEquals(59 to 7, check(17))
     }
 
     @Test

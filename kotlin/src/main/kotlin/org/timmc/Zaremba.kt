@@ -25,47 +25,42 @@ import kotlin.system.exitProcess
 
 val moshi: Moshi = Moshi.Builder().addLast(KotlinJsonAdapterFactory()).build()
 
-class PrimesFinder: Iterable<Long> {
-    val known = mutableListOf(2L)
+/**
+ * The first N primes.
+ */
+val primes = longArrayOf(
+    2, 3, 5, 7, 11,
+    13, 17, 19, 23, 29,
+    31, 37, 41, 43, 47,
+)
 
-    fun findNextPrime(): Long {
-        synchronized(known) {
-            var primeCandidate = known.last() + 1
-            while (true) {
-                if (known.any { primeCandidate % it == 0L }) {
-                    primeCandidate++
-                } else {
-                    known.add(primeCandidate)
-                    return primeCandidate
-                }
-            }
-        }
-    }
-
-    override fun iterator(): Iterator<Long> {
-        return iterator {
-            // Take here for thread safety (`known` may grow concurrently)
-            val initialSize = known.size
-            yieldAll(known.subList(0, initialSize))
-            var index = initialSize
-            while (true) {
-                findNextPrime() // increases length by one, if needed
-                yield(known[index])
-                index++
-            }
-        }
-    }
-}
-
-val primes = PrimesFinder()
-
-fun primeSeq() = primes.iterator().asSequence()
+/**
+ * Cache of the running product of the first N primes, computed at startup.
+ * 2, 6, 30...
+ */
+val primesRunningProduct = primes.runningReduce { acc, p -> Math.multiplyExact(acc, p) }.toLongArray()
 
 /**
  * Get the [n]th prime, with 1-based indexing.
  */
-fun nthPrime(n: Int): Long = primeSeq().elementAt(n - 1)
+fun nthPrime(n: Int): Long = primes[n - 1]
 
+/**
+ * Get the product of the first [n] primes.
+ */
+fun nPrimesProduct(n: Int): Long {
+    return if (n == 0)
+        1L
+    else
+        primesRunningProduct[n - 1]
+}
+
+// TODO: Improve [factor]:
+//  - Always assert waterfall
+//  - Pass in the stepsize along with its factorization as a starting point
+//    (assert `n % stepSize`)
+//  - Pre-check some larger powers of 2 and 3
+//  - Use a list or array rather than a map (require contiguous primes)
 /**
  * Produce the prime factorization of an integer.
  *
@@ -86,7 +81,8 @@ fun factor(n: Long, assertWaterfall: Boolean = false): Map<Long, Int>? {
 
     var previousPrimeRepeat = Int.MAX_VALUE // used for waterfall checks
 
-    for (prime in primeSeq()) {
+    var factored = false
+    for (prime in primes) {
         // Keep dividing n by prime until we can't
         var repeats = 0
         while (remainder % prime == 0L) {
@@ -102,7 +98,7 @@ fun factor(n: Long, assertWaterfall: Boolean = false): Map<Long, Int>? {
         if (repeats == 0) {
             // This prime wasn't a factor at all. Check what that means:
             if (remainder == 1L) {
-                // Done factorizing!
+                factored = true
                 break
             } else {
                 // This prime doesn't divide n, and we're not done yet. Is that
@@ -119,6 +115,10 @@ fun factor(n: Long, assertWaterfall: Boolean = false): Map<Long, Int>? {
 
         previousPrimeRepeat = repeats
     }
+
+    if (!factored)
+        throw AssertionError("Ran out of primes when factoring")
+
     return factors.toMap()
 }
 
@@ -203,7 +203,7 @@ fun doSingle(n: Long) {
 fun zStepPk(recordZ: Double): Int {
     var stepPk = 0
     var mertensProduct = 1.0 // 2/1 * 3/2 * ... * p/(p-1)
-    for (prime in primeSeq()) {
+    for (prime in primes) {
         stepPk += 1
         mertensProduct *= prime/(prime - 1.0)
         val boundsTest = mertensProduct * ln(prime.toDouble()) // TODO erdos(p)
@@ -213,7 +213,6 @@ fun zStepPk(recordZ: Double): Int {
             return stepPk
         }
     }
-    // Needed in case the primes iterator breaks in a weird way on large numbers
     throw AssertionError("Ran out of primes")
 }
 
@@ -290,7 +289,7 @@ fun minTauCandidates(
         // constraint.
         if (i == 0 || exponents[i] < exponents[i-1]) {
             val nextExponents = exponents.swapAt(i) { it + 1 }
-            val nextProduct = Math.multiplyExact(product, primeSeq().elementAt(i))
+            val nextProduct = Math.multiplyExact(product, primes[i])
             yieldAll(minTauCandidates(n, nextExponents, nextProduct, i, fast))
         }
     }
@@ -301,7 +300,7 @@ fun minTauCandidates(
  */
 fun minTauCandidates(n: Long, primesK: Int, fast: Boolean): Sequence<MinTauCandidate> {
     val exponents = List(primesK) {1L}
-    val product = primeSeq().take(primesK).product()
+    val product = nPrimesProduct(primesK)
     val i = 0
     return minTauCandidates(n, exponents, product, i, fast)
 }
@@ -335,7 +334,7 @@ fun vStepPk(n: Long, recordV: Double, vStepPkLast: Int): Int {
         }
     }
 
-    val lastStepPrimes = primeSeq().take(vStepPkLast).toList()
+    val lastStepPrimes = primes.sliceArray(0 until vStepPkLast)
 
     // Merten's Product up to largest prime in current v step size
     val mert = lastStepPrimes.map { p -> p/(p - 1.0) }.product()
@@ -347,7 +346,7 @@ fun vStepPk(n: Long, recordV: Double, vStepPkLast: Int): Int {
     // possible integer overflow, i.e. it's a "safe" multiplication.
     return if (mert * 1.0 * erdos / ln(minTau.toDouble()) <= recordV) {
         val nextStepCount = vStepPkLast + 1
-        val nextStep = primeSeq().take(nextStepCount).product()
+        val nextStep = nPrimesProduct(nextStepCount)
 
         if (n % nextStep == 0L) {
             nextStepCount
@@ -367,7 +366,7 @@ fun vStepPk(n: Long, recordV: Double, vStepPkLast: Int): Int {
  */
 fun pkHighestDoubleFactor(k: Int): Int {
     val pK = nthPrime(k).toDouble()
-    return primeSeq().takeWhile { pLInt ->
+    return primes.takeWhile { pLInt ->
         val pL = pLInt.toDouble()
         val lnPL = ln(pL)
         val c1 = pK > pL * (pL + 1)
@@ -384,7 +383,7 @@ fun pkHighestDoubleFactor(k: Int): Int {
 fun pkToStep(k: Int): Long {
     val l = pkHighestDoubleFactor(k)
     // We get to double-dip on the first l primes
-    return (primeSeq().take(k) + primeSeq().take(l)).product()
+    return Math.multiplyExact(nPrimesProduct(k), nPrimesProduct(l))
 }
 
 data class RecordSetterZ(
@@ -463,8 +462,8 @@ fun findRecordsV(): Iterator<RecordSetterV> {
         var n = 2L // v(1) is undefined
         var stepPk = 0 // number of primes to multiply for the v step size
         var stepSize = 1L // *actual* step size to use, based on stepPk
-
         var record = 0.0
+
         while (true) {
             val primeFactors = factorWaterfall(n)
             if (primeFactors != null) {
