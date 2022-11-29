@@ -714,14 +714,19 @@ class FactorCmd : CliktCommand(
 
         // Transpose the factorization into primorials
         val primorialExps = transposePrimesToPrimorials(factorization)
-        val primIndicesString = primorialExps.mapIndexedNotNull { i, exp ->
-            if (exp == 0) null else "pr(${i + 1})^$exp"
-        }.joinToString(" * ")
         val primFactorsString = primorialExps.mapIndexedNotNull { i, exp ->
             if (exp == 0) null else "${nthPrimorial(i + 1)}^$exp"
         }.joinToString(" * ")
-        println("Primorial indices: $primIndicesString")
+        println("Primorial indices: $primorialExps")
         println("Primorial factors: $primFactorsString")
+
+        runCatching {
+            val levels = listOf(' ', '▁', '▂', '▃', '▄', '▅', '▆', '▇')
+            val sparkline = primorialExps.joinToString("") {
+                levels[it].toString()
+            }
+            println("Primorial sparkline: [$sparkline]")
+        }.onFailure { println("Could not make primorial sparkline") }
     }
 }
 
