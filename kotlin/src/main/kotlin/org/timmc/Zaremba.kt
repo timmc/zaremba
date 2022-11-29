@@ -717,7 +717,7 @@ class FactorCmd : CliktCommand(
         val primFactorsString = primorialExps.mapIndexedNotNull { i, exp ->
             if (exp == 0) null else "${nthPrimorial(i + 1)}^$exp"
         }.joinToString(" * ")
-        println("Primorial indices: $primorialExps")
+        println("Primorial exponents: $primorialExps")
         println("Primorial factors: $primFactorsString")
 
         runCatching {
