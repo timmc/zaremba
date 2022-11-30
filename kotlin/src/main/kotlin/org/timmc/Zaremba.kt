@@ -17,6 +17,7 @@ package org.timmc
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.core.subcommands
 import com.github.ajalt.clikt.parameters.arguments.argument
+import com.github.ajalt.clikt.parameters.arguments.convert
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.required
 import com.github.ajalt.clikt.parameters.types.enum
@@ -26,6 +27,7 @@ import com.squareup.moshi.Moshi
 import com.squareup.moshi.adapter
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import java.io.File
+import java.math.BigInteger
 import kotlin.math.ln
 import kotlin.math.max
 import kotlin.system.exitProcess
@@ -730,6 +732,120 @@ class FactorCmd : CliktCommand(
     }
 }
 
+/**
+ * From https://oeis.org/A000040 -- add more as needed.
+ */
+val primesBig = arrayOf(
+    2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71,
+    73, 79, 83, 89, 97, 101, 103, 107, 109, 113, 127, 131, 137, 139, 149, 151,
+    157, 163, 167, 173, 179, 181, 191, 193, 197, 199, 211, 223, 227, 229, 233,
+    239, 241, 251, 257, 263, 269, 271,
+).map { it.toBigInteger() }
+
+/**
+ * `primorials[k]` == (k+1)th primorial number: 2, 6, 30, ...
+ */
+val primorialsBig = primesBig
+    .runningFold(BigInteger.ONE, BigInteger::multiply)
+    .drop(1)
+
+/**
+ * Representation of a waterfall number as a list of exponents of the first k
+ * primorial numbers. For example, [0, 1, 3] = 2^0 * 6^1 * 30^3
+ */
+typealias PrimorialExponents = List<Int>
+
+data class WaterfallNumber(
+    val value: BigInteger,
+    val primorialExponents: PrimorialExponents,
+)
+
+/**
+ * Recursive core of [find()]. Given a list of exponents of lower primorial
+ * numbers, accompanied by a matching product, yield waterfall numbers that
+ * are multiples of that base and various powers of the first primorial in
+ * the list of remaining ones.
+ *
+ * Explores in two directions: Higher powers of the current primorial, and in
+ * recursive calls to the next primorial (one for each power of this one, plus
+ * one.)
+ *
+ * The output is not sorted.
+ */
+private fun innerFindWaterfall(
+    primorials: List<BigInteger>, maxN: BigInteger,
+    baseExp: PrimorialExponents, baseProduct: BigInteger
+): Sequence<WaterfallNumber> {
+    return sequence {
+        // If we ever reach the end of the list *before* we find a primorial
+        // that is larger than N, raise an exception -- we need a larger list
+        // of prime numbers!
+        if (primorials.isEmpty())
+            throw AssertionError("Ran out of primorials")
+
+        val factor = primorials[0]
+        if (factor > maxN)
+            return@sequence
+
+        val nextPrimorials = primorials.drop(1)
+        yieldAll(innerFindWaterfall(nextPrimorials, maxN, baseExp.plus(0), baseProduct))
+
+        var nextProduct = baseProduct
+        var exponent = 0
+
+        while (true) {
+            nextProduct = factor * nextProduct
+            if (nextProduct > maxN)
+                break
+            exponent += 1
+
+            val nextExp = baseExp.plus(exponent)
+            yield(WaterfallNumber(
+                value = nextProduct,
+                primorialExponents = nextExp
+            ))
+            yieldAll(innerFindWaterfall(nextPrimorials, maxN, nextExp, nextProduct))
+        }
+    }
+}
+
+/**
+ * Produce a sorted sequence of all the waterfall numbers up to N, starting with
+ * 1, along with their factorization as primorial exponents.
+ */
+fun findWaterfall(maxN: BigInteger): Sequence<WaterfallNumber> {
+    val all = innerFindWaterfall(primorialsBig, maxN, emptyList(), BigInteger.ONE)
+        .plus(WaterfallNumber(value = BigInteger.ONE, primorialExponents = emptyList()))
+    return all.sortedBy(WaterfallNumber::value)
+}
+
+class WaterfallCmd : CliktCommand(
+    name = "waterfall",
+    help = """
+        Print the waterfall numbers up to max-n, in some order.
+
+        Output lines will look like the following:
+
+            5400: [0, 1, 2]
+        
+        ...where 5400 is the waterfall number, and the list shows the
+        decomposition into primorial numbers. Here, 5400 is the product of the
+        2nd primorial number (6) to the first power and the 3rd primorial number
+        (30) to the second power.
+    """.trimIndent()
+) {
+    private val maxN by argument(
+        "max-n",
+        help = "Search for waterfall numbers up to this value."
+    ).convert { it.toBigInteger() }
+
+    override fun run() {
+        findWaterfall(maxN).forEach {
+            println("${it.value}: ${it.primorialExponents}")
+        }
+    }
+}
+
 class Zaremba : CliktCommand(
     name = "Zaremba",
     help = "Tool to find z(n) and v(n) record-setters.",
@@ -741,6 +857,7 @@ class Zaremba : CliktCommand(
 }
 
 val cli = Zaremba().subcommands(
+    WaterfallCmd(),
     RecordsCmd(),
     SingleCommand(),
     FactorCmd(),
