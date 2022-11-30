@@ -144,8 +144,8 @@ class ZarembaTest {
         assertEquals(
             RecordSetter(
                 n = "963761198400", tau = 6720,
-                z = 14.96078376959392, isZRecord = true,
-                v = 1.697611432956445, isVRecord = false,
+                z = 14.960783769593917, isZRecord = true,
+                v = 1.6976114329564445, isVRecord = false,
                 primes = listOf(6, 4, 2, 1, 1, 1, 1, 1, 1),
                 primorials = listOf(2, 2, 1, 0, 0, 0, 0, 0, 1)
             ),

@@ -29,6 +29,7 @@ import kotlin.system.exitProcess
 
 
 fun Iterable<Long>.product(): Long = fold(1) { acc, n -> Math.multiplyExact(acc, n) }
+fun Iterable<Double>.product(): Double = fold(1.0, Double::times)
 
 val moshi: Moshi = Moshi.Builder().addLast(KotlinJsonAdapterFactory()).build()
 
@@ -41,6 +42,23 @@ val primes = arrayOf(
     157, 163, 167, 173, 179, 181, 191, 193, 197, 199, 211, 223, 227, 229, 233,
     239, 241, 251, 257, 263, 269, 271,
 ).map { it.toBigInteger() }
+
+val precomputePowerMax = 50
+
+/**
+ * Precomputed ln(p^a) for primes raised to various powers
+ */
+val primePowerLn = primes.map { p ->
+    val base = ln(p.toDouble())
+    List(precomputePowerMax + 1) { i -> i * base }
+}
+
+/**
+ * Precomputed p^a for primes raised to various powers, as doubles.
+ */
+val primePowerFP = primes.map { p ->
+    generateSequence(1.0) { p.toDouble() * it }.take(precomputePowerMax + 1).toList()
+}
 
 /**
  * primorials.get(k) == (k+1)th primorial number: 2, 6, 30, ...
@@ -164,12 +182,13 @@ fun primesToDivisors(primeFactors: List<Int>): Sequence<BigInteger> {
 /**
  * Given a prime factorization, compute z(n).
  */
-fun zaremba(primeFactors: List<Int>): Double {
-    val divisors = primesToDivisors(primeFactors)
-    return divisors.sumOf {
-        // TODO Source of precision loss
-        val d = it.toDouble()
-        ln(d) / d
+fun zaremba(primeExponents: List<Int>): Double {
+    // Make a sequence of divisors, each represented as prime exponents, then
+    // look each one up in the powers and log-powers tables.
+    return primeExponents.map { IntRange(0, it) }.getCartesianProduct().sumOf { divPE ->
+        val numerator = divPE.mapIndexed { pK, exp -> primePowerLn[pK][exp] }.sum()
+        val denominator = divPE.mapIndexed { pK, exp -> primePowerFP[pK][exp] }.product()
+        numerator / denominator
     }
 }
 
