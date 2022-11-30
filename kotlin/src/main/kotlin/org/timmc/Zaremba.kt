@@ -151,7 +151,7 @@ fun <T> Collection<Iterable<T>>.getCartesianProduct(): Sequence<List<T>> {
  * future.
  */
 fun primesToDivisors(primeFactors: List<Int>): Sequence<BigInteger> {
-    // Make a list of powers lists. E.g. for {2:4, 3:2, 5:1} this would produce
+    // Make a list of powers lists. E.g. for [4, 2, 1] this would produce
     // [[1,2,4,8,16], [1,3,9], [1,5]]
     val powers = primes.zip(primeFactors).map { (prime, repeat) ->
         generateSequence(BigInteger.ONE) { it * prime }.take(repeat + 1).toList()
