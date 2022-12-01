@@ -25,10 +25,15 @@ import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import java.math.BigInteger
 import kotlin.math.ln
 import kotlin.math.max
+import kotlin.math.pow
 import kotlin.system.exitProcess
 
+fun <T> List<T>.swapAt(at: Int, mapper: (T) -> T): List<T> {
+    return mapIndexed { i, v -> if (i == at) mapper(v) else v }
+}
 
-fun Iterable<Long>.product(): Long = fold(1) { acc, n -> Math.multiplyExact(acc, n) }
+fun Iterable<Double>.product(): Double = fold(1.0, Double::times)
+fun Iterable<Long>.product(): Long = fold(1, Long::times)
 
 val moshi: Moshi = Moshi.Builder().addLast(KotlinJsonAdapterFactory()).build()
 
@@ -121,56 +126,45 @@ fun factorWaterfall(n: BigInteger): List<Int>? {
 }
 
 /**
- * Cartesian product of zero or more iterables.
- *
- * This is adapted from https://stackoverflow.com/questions/53749357/idiomatic-way-to-create-n-ary-cartesian-product-combinations-of-several-sets-of
- * with comments, variable renamings, and minor formatting changes. Also changed
- * return value from a Set to a Sequence, for both order-stability and working
- * with large products. Credit is mainly to Erik Huizinga and Tenfour04.
+ * Approximate sigma_1(n), the sum of the divisors, without computing them
+ * directly.
  */
-fun <T> Collection<Iterable<T>>.getCartesianProduct(): Sequence<List<T>> {
-    return if (isEmpty()) {
-        emptySequence()
-    } else {
-        // Turn the first iterable into a sequence of single-item lists. Each of
-        // these will be the seed that items from remaining iterables will be
-        // added onto. This is the beginning of the product.
-        val seeds = first().map(::listOf).asSequence()
-        // For each remaining iterable, expand the product by combining each
-        // element of the existing product with everything in the iterable.
-        drop(1).fold(seeds) { product, nextIterable ->
-            product.flatMap { productMember -> nextIterable.map(productMember::plus) }
+fun sigmaApprox(primeFactors: List<Int>): Double {
+    return primeFactors.mapIndexed { pK, exp ->
+        val p = primes[pK].toDouble()
+        (p.pow(exp + 1) - 1)/(p - 1)
+    }.product()
+}
+
+/**
+ * Approximate h(n) = sigma(n)/n = sum(1/divisor) -- without computing divisors.
+ */
+fun hApprox(n: Double, primeFactors: List<Int>): Double {
+    return sigmaApprox(primeFactors) / n
+}
+
+/**
+ * Compute z(n) based on a formula from Erdős and Zaremba 1974, although it
+ * removes the `j` term from the product on the assumption that that was a typo
+ * (not yet proven as of this writing).
+ *
+ * This method avoids having to compute all the divisors of n, which can be
+ * computationally much more expensive.
+ */
+fun zaremba(n: BigInteger, primeFactors: List<Int>): Double {
+    val nApprox = n.toDouble()
+    // Precomputing a list of powers of primes did not achieve a noticeable speedup.
+    return primeFactors.flatMapIndexed { pK, exp ->
+        val p = primes[pK].toDouble()
+        val lnP = ln(p)
+        (1..exp).map { j ->
+            val pToJ = p.pow(j)
+            val nReduced = nApprox / pToJ
+            val nFacReduced = primeFactors.swapAt(pK) { it - j }
+            val h = hApprox(nReduced, nFacReduced)
+            lnP / pToJ * h
         }
-    }
-}
-
-/**
- * Given a map of prime divisors to their repeat counts, return all divisors.
- *
- * Does not currently work for an empty input map (i.e. for 1), but may in the
- * future.
- */
-fun primesToDivisors(primeFactors: List<Int>): Sequence<BigInteger> {
-    // Make a list of powers lists. E.g. for [4, 2, 1] this would produce
-    // [[1,2,4,8,16], [1,3,9], [1,5]]
-    val powers = primes.zip(primeFactors).map { (prime, repeat) ->
-        generateSequence(BigInteger.ONE) { it * prime }.take(repeat + 1).toList()
-    }
-    // Get the Cartesian product, e.g. [[1,1,1], [1,1,5], [1,3,1], [1,3,5]...]
-    // and take the product of each sublist. This produces all divisors.
-    return powers.getCartesianProduct().map { xs -> xs.reduce(BigInteger::times) }
-}
-
-/**
- * Given a prime factorization, compute z(n).
- */
-fun zaremba(primeFactors: List<Int>): Double {
-    val divisors = primesToDivisors(primeFactors)
-    return divisors.sumOf {
-        // TODO Source of precision loss
-        val d = it.toDouble()
-        ln(d) / d
-    }
+    }.sum()
 }
 
 class SingleCommand : CliktCommand(
@@ -185,7 +179,7 @@ class SingleCommand : CliktCommand(
             println("Not a waterfall number")
             exitProcess(1)
         }
-        val z = zaremba(factorization)
+        val z = zaremba(n, factorization)
         val tau = primesToTau(factorization)
         val v = z / ln(tau.toDouble())
         println("z(n) = $z\ttau(n) = $tau\tv(n) = $v")
@@ -221,7 +215,7 @@ fun findRecords(maxN: BigInteger): Sequence<RecordSetter> {
         for (n in findWaterfall(maxN).drop(1)) {
             val primeExp = transposePrimorialsToPrimes(n.primorialExponents)
             val tau = primesToTau(primeExp)
-            val z = zaremba(primeExp)
+            val z = zaremba(n.value, primeExp)
             val v = z / ln(tau.toDouble())
 
             val isRecordZ = recordZ > 0 && z > recordZ

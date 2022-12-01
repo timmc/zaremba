@@ -1,7 +1,6 @@
 package org.timmc
 
 import org.junit.jupiter.api.Test
-import java.math.BigInteger
 import kotlin.test.assertEquals
 
 class ZarembaTest {
@@ -55,62 +54,33 @@ class ZarembaTest {
     }
 
     @Test
-    fun cartesianProductTest() {
-        // Base case: No iterables
-        assertEquals(emptyList(), emptyList<List<Int>>().getCartesianProduct().toList())
-
-        // Trivial case: An iterable is empty
-        assertEquals(
-            emptyList(),
-            listOf(listOf(1, 2, 4), emptyList(), listOf(1, 5)).getCartesianProduct().toList()
-        )
-
-        // Trivial case: All single-element
-        assertEquals(
-            listOf(listOf(1, 2, 3)),
-            listOf(listOf(1), listOf(2), listOf(3)).getCartesianProduct().toList()
-        )
-
-        // General case
-        assertEquals(
-            listOf(
-                listOf(1, 1, 1), listOf(1, 1, 5), listOf(1, 3, 1), listOf(1, 3, 5),
-                listOf(2, 1, 1), listOf(2, 1, 5), listOf(2, 3, 1), listOf(2, 3, 5),
-                listOf(4, 1, 1), listOf(4, 1, 5), listOf(4, 3, 1), listOf(4, 3, 5),
-            ),
-            listOf(listOf(1, 2, 4), listOf(1, 3), listOf(1, 5)).getCartesianProduct().toList()
-        )
+    fun sigmaApproxTest() {
+        assertEquals(60.0, sigmaApprox(listOf(3, 1)))
+        assertEquals(121.0, sigmaApprox(listOf(0, 4)))
     }
 
     @Test
-    fun primesToDivisorsTest() {
-        fun subject(primes: List<Int>): Set<Long> =
-            primesToDivisors(primes).map(BigInteger::toLong).toSet()
-
-        // Not currently supported!
-        //assertEquals(listOf(1L), primesToDivisors(mapOf()))
-
-        assertEquals(setOf<Long>(1, 7), subject(listOf(0, 0, 0, 1)))
-        assertEquals(
-            setOf<Long>(1, 2, 5, 10),
-            subject(listOf(1, 0, 1))
-        )
-        assertEquals(
-            setOf<Long>(1, 3, 5, 9, 15, 25, 45, 75, 225),
-            subject(listOf(0, 2, 2))
-        )
-        assertEquals(
-            setOf<Long>(1, 3, 5, 7, 9, 15, 21, 35, 45, 63, 105, 315),
-            subject(listOf(0, 2, 1, 1))
-        )
+    fun hApproxTest() {
+        assertEquals(2.3333333333333335, hApprox(12.0, listOf(2, 1)))
     }
 
     @Test
-    fun zarembaTest() {
+    fun zarembaSumSigmaTest() {
         // This tests equality of floating point numbers, so it may break if the
         // computation is done in a different order, e.g. if the recomposition
         // of primes into divisors is unstable.
-        assertEquals(1.0114042647073518, zaremba(listOf(1, 1)))
+        //
+        // Compared to a different computation (zarembaCartesian, just summing
+        // divisor/ln(divisor) there's a difference in the last 3 decimal
+        // places.
+        assertEquals(1.0114042647073518, zaremba(6.toBigInteger(), listOf(1, 1)))
+        assertEquals(1.5650534091363244, zaremba(12.toBigInteger(), listOf(2, 1)))
+        assertEquals(1.9574025114441351, zaremba(24.toBigInteger(), listOf(3, 1)))
+        assertEquals(2.2113393276447026, zaremba(48.toBigInteger(), listOf(4, 1)))
+        assertEquals(20.507394183515835, zaremba(
+            "55203167814376982400".toBigInteger(),
+            listOf(7,5,2,2,1,1,1,1,1,1,1,1,1)
+        ))
     }
 
     @Test
@@ -144,8 +114,8 @@ class ZarembaTest {
         assertEquals(
             RecordSetter(
                 n = "963761198400", tau = 6720,
-                z = 14.96078376959392, isZRecord = true,
-                v = 1.697611432956445, isVRecord = false,
+                z = 14.960783769593885, isZRecord = true,
+                v = 1.697611432956441, isVRecord = false,
                 primes = listOf(6, 4, 2, 1, 1, 1, 1, 1, 1),
                 primorials = listOf(2, 2, 1, 0, 0, 0, 0, 0, 1)
             ),
