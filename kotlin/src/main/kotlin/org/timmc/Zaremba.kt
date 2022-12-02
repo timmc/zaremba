@@ -144,26 +144,20 @@ fun hApprox(n: Double, primeFactors: List<Int>): Double {
 }
 
 /**
- * Compute z(n) based on a formula from Erdős and Zaremba 1974, although it
- * removes the `j` term from the product on the assumption that that was a typo
- * (not yet proven as of this writing).
+ * Compute z(n) based on a formula from Weber 2020 [1]. This method avoids
+ * having to compute all the divisors of n, which can be computationally much
+ * more expensive.
  *
- * This method avoids having to compute all the divisors of n, which can be
- * computationally much more expensive.
+ * [1] https://arxiv.org/pdf/1810.10876.pdf
  */
 fun zaremba(n: BigInteger, primeFactors: List<Int>): Double {
     val nApprox = n.toDouble()
     // Precomputing a list of powers of primes did not achieve a noticeable speedup.
-    return primeFactors.flatMapIndexed { pK, exp ->
+    return primeFactors.mapIndexed { pK, exp ->
         val p = primes[pK].toDouble()
         val lnP = ln(p)
-        (1..exp).map { j ->
-            val pToJ = p.pow(j)
-            val nReduced = nApprox / pToJ
-            val nFacReduced = primeFactors.swapAt(pK) { it - j }
-            val h = hApprox(nReduced, nFacReduced)
-            lnP / pToJ * h
-        }
+        val h = hApprox(nApprox / p.pow(exp), primeFactors.swapAt(pK) { 0 })
+        (1..exp).sumOf { j -> j * lnP / p.pow(j) } * h
     }.sum()
 }
 

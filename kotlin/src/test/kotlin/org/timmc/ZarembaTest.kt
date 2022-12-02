@@ -75,8 +75,8 @@ class ZarembaTest {
         // places.
         assertEquals(1.0114042647073518, zaremba(6.toBigInteger(), listOf(1, 1)))
         assertEquals(1.5650534091363244, zaremba(12.toBigInteger(), listOf(2, 1)))
-        assertEquals(1.9574025114441351, zaremba(24.toBigInteger(), listOf(3, 1)))
-        assertEquals(2.2113393276447026, zaremba(48.toBigInteger(), listOf(4, 1)))
+        assertEquals(1.957402511444135, zaremba(24.toBigInteger(), listOf(3, 1)))
+        assertEquals(2.211339327644702, zaremba(48.toBigInteger(), listOf(4, 1)))
         assertEquals(20.507394183515835, zaremba(
             "55203167814376982400".toBigInteger(),
             listOf(7,5,2,2,1,1,1,1,1,1,1,1,1)
@@ -114,8 +114,8 @@ class ZarembaTest {
         assertEquals(
             RecordSetter(
                 n = "963761198400", tau = 6720,
-                z = 14.960783769593885, isZRecord = true,
-                v = 1.697611432956441, isVRecord = false,
+                z = 14.960783769593887, isZRecord = true,
+                v = 1.6976114329564411, isVRecord = false,
                 primes = listOf(6, 4, 2, 1, 1, 1, 1, 1, 1),
                 primorials = listOf(2, 2, 1, 0, 0, 0, 0, 0, 1)
             ),
