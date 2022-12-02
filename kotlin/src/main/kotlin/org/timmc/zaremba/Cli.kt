@@ -16,13 +16,13 @@ class SingleCommand : CliktCommand(
     private val n by argument("n").convert { it.toBigInteger() }
 
     override fun run() {
-        val factorization = factorWaterfall(n)
+        val factorization = Waterfall.factor(n)
         if (factorization == null) {
             println("Not a waterfall number")
             exitProcess(1)
         }
-        val z = zaremba(n, factorization)
-        val tau = primesToTau(factorization)
+        val z = Zaremba.z(n, factorization)
+        val tau = Zaremba.primesToTau(factorization)
         val v = z / ln(tau.toDouble())
         println("z(n) = $z\ttau(n) = $tau\tv(n) = $v")
     }
@@ -39,9 +39,9 @@ class RecordsCmd : CliktCommand(
 
     override fun run() {
         @OptIn(ExperimentalStdlibApi::class)
-        val json = Util.moshi.adapter<RecordSetter>()
+        val json = Util.moshi.adapter<Zaremba.RecordSetter>()
 
-        findRecords(maxN).forEach { r ->
+        Zaremba.findRecords(maxN).forEach { r ->
             println(json.toJson(r))
         }
     }
@@ -55,7 +55,7 @@ class LatexCommand : CliktCommand(
 
     override fun run() {
         @OptIn(ExperimentalStdlibApi::class)
-        val json = Util.moshi.adapter<RecordSetter>()
+        val json = Util.moshi.adapter<Zaremba.RecordSetter>()
         val records = recordsJsonFile.readLines().map { json.fromJson(it)!! }
 
         println("n & z(n) & tau(n) & v(n) & type of record & z step & v step")
@@ -82,18 +82,18 @@ class FactorCmd : CliktCommand(
     private val n by argument("n").convert { it.toBigInteger() }
 
     override fun run() {
-        val factorization = factorWaterfall(n)
+        val factorization = Waterfall.factor(n)
         if (factorization == null) {
             println("Not a waterfall number, cannot factor")
             exitProcess(1)
         }
         println("Prime exponents: $factorization")
-        println("Repeated prime factors: ${primes.zip(factorization).joinToString(" * ") { (p, a) -> "$p^$a" }}")
+        println("Repeated prime factors: ${Primes.list.zip(factorization).joinToString(" * ") { (p, a) -> "$p^$a" }}")
 
         // Transpose the factorization into primorials
-        val primorialExps = transposePrimesToPrimorials(factorization)
+        val primorialExps = Primes.toPrimorials(factorization)
         val primFactorsString = primorialExps.mapIndexedNotNull { i, exp ->
-            if (exp == 0) null else "${nthPrimorial(i + 1)}^$exp"
+            if (exp == 0) null else "${Primorials.nth(i + 1)}^$exp"
         }.joinToString(" * ")
         println("Primorial exponents: $primorialExps")
         println("Primorial factors: $primFactorsString")
@@ -129,13 +129,13 @@ class WaterfallCmd : CliktCommand(
     ).convert { it.toBigInteger() }
 
     override fun run() {
-        findWaterfall(maxN).forEach {
+        Waterfall.findUpTo(maxN).forEach {
             println("${it.value}: ${it.primorialExponents}")
         }
     }
 }
 
-class Zaremba : CliktCommand(
+class Cli : CliktCommand(
     name = "Zaremba",
     help = "Tool to find z(n) and v(n) record-setters.",
     invokeWithoutSubcommand = false,
@@ -145,7 +145,7 @@ class Zaremba : CliktCommand(
     }
 }
 
-val cli = Zaremba().subcommands(
+val cli = Cli().subcommands(
     WaterfallCmd(),
     RecordsCmd(),
     SingleCommand(),

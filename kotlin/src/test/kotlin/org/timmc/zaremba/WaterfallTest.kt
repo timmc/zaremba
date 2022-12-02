@@ -15,13 +15,13 @@ class WaterfallSequenceTest {
                 1260, 1296, 1440, 1536, 1680, 1728, 1800, 1920, 2048, 2160,
                 2304, 2310
             ).map { it.toBigInteger() },
-            findWaterfall(2400.toBigInteger()).map { it.value }.toList()
+            Waterfall.findUpTo(2400.toBigInteger()).map { it.value }.toList()
         )
     }
 
     /** Adapter that accepts a Long. */
     private fun factorWaterfall(n: Long): List<Int>? {
-        return factorWaterfall(n.toBigInteger())
+        return Waterfall.factor(n.toBigInteger())
     }
 
     @Test
@@ -48,7 +48,7 @@ class WaterfallSequenceTest {
         // Large
         assertEquals(
             listOf(17, 9, 5, 3, 3, 3, 2, 2, 2),
-            factorWaterfall("446286951930693872026828800000".toBigInteger())
+            Waterfall.factor("446286951930693872026828800000".toBigInteger())
         )
     }
 }
