@@ -4,10 +4,18 @@ import java.math.BigInteger
 
 data class WaterfallNumber(
     val value: BigInteger,
-    val primorialExponents: PrimorialExponents,
+    val primorialExponents: PrimorialExp,
 )
 
 object Waterfall {
+    /**
+     * Throw if a list of prime exponents does not represent a waterfall number.
+     */
+    fun assertWaterfall(exps: PrimeExp) {
+        if (!exps.zipWithNext { a, b -> a >= b }.all { it }) {
+            throw AssertionError("Prime exponents failed waterfall test: $exps")
+        }
+    }
     /**
      * Recursive core of [findUpTo]. Given a list of exponents of lower primorial
      * numbers, accompanied by a matching product, yield waterfall numbers that
@@ -22,7 +30,7 @@ object Waterfall {
      */
     private fun findUpToFrom(
         primorials: List<BigInteger>, maxN: BigInteger,
-        baseExp: PrimorialExponents, baseProduct: BigInteger
+        baseExp: PrimorialExp, baseProduct: BigInteger
     ): Sequence<WaterfallNumber> {
         return sequence {
             // If we ever reach the end of the list *before* we find a primorial
@@ -70,10 +78,14 @@ object Waterfall {
     /**
      * Produce the prime factorization of a waterfall number.
      *
+     * TODO: Switch to factoring into primorials instead? Not needed for z(n)
+     *   calculation any more, but would be faster if that's needed at some
+     *   point.
+     *
      * @return a map of prime factors to their counts, or null if not a waterfall
      *   number
      */
-    fun factor(n: BigInteger): List<Int>? {
+    fun factor(n: BigInteger): PrimeExp? {
         // Running remainder, and factors so far
         var remainder = n
         val factors = mutableListOf<Int>()

@@ -91,7 +91,7 @@ class FactorCmd : CliktCommand(
         println("Repeated prime factors: ${Primes.list.zip(factorization).joinToString(" * ") { (p, a) -> "$p^$a" }}")
 
         // Transpose the factorization into primorials
-        val primorialExps = Primes.toPrimorials(factorization)
+        val primorialExps = Primes.waterfallToPrimorials(factorization)
         val primFactorsString = primorialExps.mapIndexedNotNull { i, exp ->
             if (exp == 0) null else "${Primorials.nth(i + 1)}^$exp"
         }.joinToString(" * ")

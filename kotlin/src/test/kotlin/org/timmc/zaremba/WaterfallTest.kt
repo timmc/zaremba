@@ -20,7 +20,7 @@ class WaterfallSequenceTest {
     }
 
     /** Adapter that accepts a Long. */
-    private fun factorWaterfall(n: Long): List<Int>? {
+    private fun factorWaterfall(n: Long): PrimeExp? {
         return Waterfall.factor(n.toBigInteger())
     }
 

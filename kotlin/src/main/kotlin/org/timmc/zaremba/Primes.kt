@@ -15,15 +15,27 @@ object Primes {
 
     /**
      * Convert a list of prime factor exponents into primorial exponents.
+     *
+     * This is required to be a waterfall number.
      */
-    fun toPrimorials(primeExponents: List<Int>): PrimorialExponents {
+    fun waterfallToPrimorials(primeExponents: PrimeExp): PrimorialExp {
+        Waterfall.assertWaterfall(primeExponents)
         return (primeExponents + listOf(0)).zipWithNext(Int::minus)
     }
 }
 
 /**
+ * Representation of a number as a list of exponents of the first k
+ * primes numbers. For example, [0, 1, 3] = 2^0 * 6^1 * 30^3
+ */
+typealias PrimeExp = List<Int>
+
+/**
  * Primorial numbers are the product of the first k primes: 2, 6, 30...
  * https://oeis.org/A002110
+ *
+ * Primorials and their products (including the empty product of 1) are always
+ * waterfall numbers.
  */
 object Primorials {
     /**
@@ -46,7 +58,7 @@ object Primorials {
     /**
      * Convert a list of primorial factor exponents into prime exponents.
      */
-    fun toPrimes(primorialExponents: PrimorialExponents): List<Int> {
+    fun toPrimes(primorialExponents: PrimorialExp): PrimeExp {
         return primorialExponents.asReversed().runningReduce(Int::plus).reversed()
     }
 }
@@ -55,4 +67,4 @@ object Primorials {
  * Representation of a waterfall number as a list of exponents of the first k
  * primorial numbers. For example, [0, 1, 3] = 2^0 * 6^1 * 30^3
  */
-typealias PrimorialExponents = List<Int>
+typealias PrimorialExp = List<Int>

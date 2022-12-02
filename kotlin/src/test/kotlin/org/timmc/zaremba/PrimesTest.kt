@@ -16,7 +16,7 @@ class PrimesTest {
     fun transposeTest() {
         val primes = listOf(9, 5, 3, 2, 2, 1, 1)
         val primorials = listOf(4, 2, 1, 0, 1, 0, 1)
-        assertEquals(primorials, Primes.toPrimorials(primes))
+        assertEquals(primorials, Primes.waterfallToPrimorials(primes))
         assertEquals(primes, Primorials.toPrimes(primorials))
     }
 }

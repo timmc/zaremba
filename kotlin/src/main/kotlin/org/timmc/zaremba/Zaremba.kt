@@ -24,7 +24,7 @@ object Zaremba {
      * Approximate sigma_1(n), the sum of the divisors, without computing them
      * directly.
      */
-    fun sigmaApprox(primeFactors: List<Int>): Double {
+    fun sigmaApprox(primeFactors: PrimeExp): Double {
         return primeFactors.mapIndexed { pK, exp ->
             val p = Primes.list[pK].toDouble()
             (p.pow(exp + 1) - 1)/(p - 1)
@@ -34,7 +34,7 @@ object Zaremba {
     /**
      * Approximate h(n) = sigma(n)/n = sum(1/divisor) -- without computing divisors.
      */
-    fun hApprox(n: Double, primeFactors: List<Int>): Double {
+    fun hApprox(n: Double, primeFactors: PrimeExp): Double {
         return sigmaApprox(primeFactors) / n
     }
 
@@ -45,7 +45,7 @@ object Zaremba {
      *
      * [1] https://arxiv.org/pdf/1810.10876.pdf
      */
-    fun z(n: BigInteger, primeFactors: List<Int>): Double {
+    fun z(n: BigInteger, primeFactors: PrimeExp): Double {
         val nApprox = n.toDouble()
         // Precomputing a list of powers of primes did not achieve a noticeable speedup.
         return primeFactors.mapIndexed { pK, exp ->
@@ -60,7 +60,7 @@ object Zaremba {
      * Given a set of prime exponents, give the number of divisors if they were
      * recomposed.
      */
-    fun primesToTau(exponents: List<Int>): Long {
+    fun primesToTau(exponents: PrimeExp): Long {
         return exponents.map { it + 1L }.product()
     }
 
@@ -71,8 +71,8 @@ object Zaremba {
         val isZRecord: Boolean,
         val v: Double,
         val isVRecord: Boolean,
-        val primes: List<Int>,
-        val primorials: List<Int>
+        val primes: PrimeExp,
+        val primorials: PrimorialExp,
     )
 
     /**
