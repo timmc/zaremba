@@ -17,7 +17,7 @@
         <kotlin.compiler.jvmTarget>11</kotlin.compiler.jvmTarget>
         <kotlin.compiler.incremental>true</kotlin.compiler.incremental>
 
-        <main.class>org.timmc.ZarembaKt</main.class>
+        <main.class>org.timmc.zaremba.CliKt</main.class>
         <exec.mainClass>${main.class}</exec.mainClass>
 
         <kotlin.version>1.7.21</kotlin.version>
