@@ -78,11 +78,11 @@ object Zaremba {
     /**
      * Yield all n that produce record-setting values for z(n) or v(n).
      */
-    fun findRecords(maxN: BigInteger): Sequence<RecordSetter> {
+    fun findRecords(waterfallStepSize: BigInteger): Sequence<RecordSetter> {
         return sequence {
             var recordZ = 0.0
             var recordV = 0.0
-            for (n in Waterfall.findUpTo(maxN).drop(1)) {
+            for (n in Waterfall.findAll(waterfallStepSize).drop(1)) {
                 val primeExp = Primorials.toPrimes(n.primorialExponents)
                 val tau = primesToTau(primeExp)
                 val z = z(n.value, primeExp)

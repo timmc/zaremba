@@ -6,10 +6,10 @@ Build:
 mvn package
 ```
 
-Calculate records for z(n) and v(n) up to n=1e19:
+Calculate records for z(n) and v(n) for 5 minutes:
 
 ```bash
-timeout 5m java -jar target/zaremba-*-jar-with-dependencies.jar records 10000000000000000000 | tee -a records.json
+timeout 5m java -jar target/zaremba-*-jar-with-dependencies.jar records | tee -a records.json
 ```
 
 Reformat records for LaTeX table output:

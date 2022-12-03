@@ -30,18 +30,18 @@ class SingleCommand : CliktCommand(
 
 class RecordsCmd : CliktCommand(
     name = "records",
-    help = "Find and print all n that produce a record-setter for z(n) or v(n)"
-) {
-    private val maxN by argument(
-        "max-n",
-        help = "Search for record-setting inputs up to this n."
-    ).convert { it.toBigInteger() }
+    help = """
+        Find and print all n that produce a record-setter for z(n) or v(n).
 
+        This command runs until killed.
+    """.trimIndent()
+) {
     override fun run() {
         @OptIn(ExperimentalStdlibApi::class)
         val json = Util.moshi.adapter<Zaremba.RecordSetter>()
 
-        Zaremba.findRecords(maxN).forEach { r ->
+        val waterfallStepSize = "10000000000000000000000000000".toBigInteger()
+        Zaremba.findRecords(waterfallStepSize).forEach { r ->
             println(json.toJson(r))
         }
     }
@@ -111,7 +111,7 @@ class FactorCmd : CliktCommand(
 class WaterfallCmd : CliktCommand(
     name = "waterfall",
     help = """
-        Print the waterfall numbers up to max-n, in some order.
+        Print the waterfall numbers, in order, until program is killed.
 
         Output lines will look like the following:
 
@@ -123,13 +123,9 @@ class WaterfallCmd : CliktCommand(
         (30) to the second power.
     """.trimIndent()
 ) {
-    private val maxN by argument(
-        "max-n",
-        help = "Search for waterfall numbers up to this value."
-    ).convert { it.toBigInteger() }
-
     override fun run() {
-        Waterfall.findUpTo(maxN).forEach {
+        val stepSize = "10000000000000000000000000000".toBigInteger()
+        Waterfall.findAll(stepSize).forEach {
             println("${it.value}: ${it.primorialExponents}")
         }
     }

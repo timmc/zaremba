@@ -57,7 +57,8 @@ class ZarembaTest {
                     primes = listOf(1, 1), primorials = listOf(0, 1),
                 ),
             ),
-            Zaremba.findRecords(10.toBigInteger()).toList()
+            Zaremba.findRecords(waterfallStepSize = 1000.toBigInteger())
+                .take(2).toList()
         )
 
         // Not independently verified, just grabbed from output of a previous
@@ -70,7 +71,8 @@ class ZarembaTest {
                 primes = listOf(6, 4, 2, 1, 1, 1, 1, 1, 1),
                 primorials = listOf(2, 2, 1, 0, 0, 0, 0, 0, 1)
             ),
-            Zaremba.findRecords(1000000000000.toBigInteger()).last()
+            Zaremba.findRecords(waterfallStepSize = 1000000000000.toBigInteger())
+                .elementAt(68)
         )
     }
 }
