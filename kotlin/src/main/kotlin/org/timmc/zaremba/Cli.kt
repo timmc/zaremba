@@ -4,6 +4,9 @@ import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.core.subcommands
 import com.github.ajalt.clikt.parameters.arguments.argument
 import com.github.ajalt.clikt.parameters.arguments.convert
+import com.github.ajalt.clikt.parameters.options.convert
+import com.github.ajalt.clikt.parameters.options.default
+import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.types.file
 import com.squareup.moshi.adapter
 import kotlin.math.ln
@@ -36,11 +39,14 @@ class RecordsCmd : CliktCommand(
         This command runs until killed.
     """.trimIndent()
 ) {
+    val waterfallStepSize by option("--waterfall-step-size")
+        .convert { it.toBigInteger() }
+        .default("10000000000000000000000000000".toBigInteger())
+
     override fun run() {
         @OptIn(ExperimentalStdlibApi::class)
         val json = Util.moshi.adapter<Zaremba.RecordSetter>()
 
-        val waterfallStepSize = "10000000000000000000000000000".toBigInteger()
         Zaremba.findRecords(waterfallStepSize).forEach { r ->
             println(json.toJson(r))
         }
@@ -123,8 +129,11 @@ class WaterfallCmd : CliktCommand(
         (30) to the second power.
     """.trimIndent()
 ) {
+    val stepSize by option("--step-size")
+        .convert { it.toBigInteger() }
+        .default("10000000000000000000000000000".toBigInteger())
+
     override fun run() {
-        val stepSize = "10000000000000000000000000000".toBigInteger()
         Waterfall.findAll(stepSize).forEach {
             println("${it.value}: ${it.primorialExponents}")
         }
