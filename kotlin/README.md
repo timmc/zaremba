@@ -18,6 +18,12 @@ Reformat records for LaTeX table output:
 java -jar target/zaremba-*-jar-with-dependencies.jar latex records.json > records.latex
 ```
 
+Use k-primes/max-tau approach instead, with highest known v(n) record as input:
+
+```bash
+for k in {1..35}; do echo "Running with k=$k"; java -jar target/zaremba-*-jar-with-dependencies.jar k-primes --V 1.7059578102443238 --k $k; echo; echo; done | tee kprimes.txt
+```
+
 TODO:
 
 - Parallelize

@@ -19,4 +19,10 @@ class PrimesTest {
         assertEquals(primorials, Primes.waterfallToPrimorials(primes))
         assertEquals(primes, Primorials.toPrimes(primorials))
     }
+
+    @Test
+    fun unfactorTest() {
+        assertEquals(1.toBigInteger(), Primorials.unfactor(emptyList()))
+        assertEquals(120.toBigInteger(), Primorials.unfactor(listOf(2, 0, 1)))
+    }
 }

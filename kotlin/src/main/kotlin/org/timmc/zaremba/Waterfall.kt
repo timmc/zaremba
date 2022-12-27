@@ -16,6 +16,7 @@ object Waterfall {
             throw AssertionError("Prime exponents failed waterfall test: $exps")
         }
     }
+
     /**
      * Recursive core of [findUpTo]. Given a list of exponents of lower primorial
      * numbers, accompanied by a matching product, yield waterfall numbers that
@@ -44,6 +45,7 @@ object Waterfall {
                 return@sequence
 
             val nextPrimorials = primorials.drop(1)
+            // TODO: Combine these two recursive calls into one at the top of the loop
             yieldAll(findUpToFrom(nextPrimorials, maxN, baseExp.plus(0), baseProduct))
 
             var nextProduct = baseProduct
@@ -73,6 +75,72 @@ object Waterfall {
         val all = findUpToFrom(Primorials.list, maxN, emptyList(), BigInteger.ONE)
             .plus(WaterfallNumber(value = BigInteger.ONE, primorialExponents = emptyList()))
         return all.sortedBy(WaterfallNumber::value)
+    }
+
+    /**
+     * Recursive core of [forKPrimesAndMaxTau]. Given a list of exponents of
+     * primorial numbers, yield waterfall numbers that are multiples of that
+     * base by incrementing exponents at various indexes (from [position] up
+     * to the last index).
+     *
+     * Explores in two directions: Higher powers of the current index, and
+     * recursive calls for the next index over, using those higher powers as an
+     * input.
+     *
+     * Does not yield the waterfall number for the starting [exp] value; the
+     * caller must do this.
+     *
+     * The output is limited by only finding waterfall numbers with a divisor
+     * count less than or equal to [maxTau].
+     *
+     * The output is not sorted.
+     */
+    private fun forKPrimesAndMaxTauFrom(
+        exp: PrimorialExp, maxTau: BigInteger, position: Int
+    ): Sequence<WaterfallNumber> {
+        return sequence {
+            val canExploreRightwards = position + 1 < exp.size
+            var curExp = exp
+            while (true) {
+                // Explore rightwards from each variation on this position
+                if (canExploreRightwards) {
+                    yieldAll(forKPrimesAndMaxTauFrom(curExp, maxTau, position + 1))
+                }
+
+                // Explore further upwards
+                curExp = curExp.swapAt(position) { it + 1 }
+
+                val curTau = Zaremba.primorialsToTau(curExp)
+                if (curTau > maxTau)
+                    break
+
+                yield(WaterfallNumber(
+                    value = Primorials.unfactor(curExp),
+                    primorialExponents = curExp,
+                ))
+            }
+        }
+    }
+
+    /**
+     * Produce all waterfall numbers that use exactly the first k primes, with
+     * a maximum tau value of the product.
+     */
+    fun forKPrimesAndMaxTau(kPrimes: Int, maxTau: BigInteger): Sequence<WaterfallNumber> {
+        // Start with nothing except the largest primorial, raised to 1. This is
+        // the same as having the prime exponents all set to 1.
+        val startingExponents: PrimorialExp = List(kPrimes - 1) { 0 } + listOf(1)
+        return sequence {
+            // Manually yield first value, since recursive function won't
+            if (Zaremba.primorialsToTau(startingExponents) <= maxTau) {
+                yield(WaterfallNumber(
+                    Primorials.unfactor(startingExponents),
+                    startingExponents,
+                ))
+            }
+
+            yieldAll(forKPrimesAndMaxTauFrom(startingExponents, maxTau, 0))
+        }
     }
 
     /**

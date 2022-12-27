@@ -61,6 +61,18 @@ object Primorials {
     fun toPrimes(primorialExponents: PrimorialExp): PrimeExp {
         return primorialExponents.asReversed().runningReduce(Int::plus).reversed()
     }
+
+    /**
+     * Given exponents of primorials, compute the product.
+     */
+    fun unfactor(exponents: PrimorialExp): BigInteger {
+        if (list.size < exponents.size)
+            throw AssertionError("Not enough precomputed primorials")
+
+        return list.zip(exponents)
+            .map { (primorial, exponent) -> primorial.pow(exponent) }
+            .product()
+    }
 }
 
 /**

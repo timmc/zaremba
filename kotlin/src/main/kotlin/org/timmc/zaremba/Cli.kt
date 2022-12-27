@@ -4,7 +4,11 @@ import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.core.subcommands
 import com.github.ajalt.clikt.parameters.arguments.argument
 import com.github.ajalt.clikt.parameters.arguments.convert
+import com.github.ajalt.clikt.parameters.options.option
+import com.github.ajalt.clikt.parameters.options.required
+import com.github.ajalt.clikt.parameters.types.double
 import com.github.ajalt.clikt.parameters.types.file
+import com.github.ajalt.clikt.parameters.types.int
 import com.squareup.moshi.adapter
 import kotlin.math.ln
 import kotlin.system.exitProcess
@@ -135,6 +139,48 @@ class WaterfallCmd : CliktCommand(
     }
 }
 
+class KPrimesCmd : CliktCommand(
+    name = "k-primes",
+    help = """
+        Check for record-setters for v(n) where n is composed only of positive
+        powers of all of the first k primes.
+    """.trimIndent()
+) {
+    private val k by option(
+        "--k",
+        help = "Number of unique, consecutive primes in n's factorization"
+    ).int().required()
+
+    private val vRecord by option(
+        "--V",
+        help = "Largest known record-setter for v(n)"
+    ).double().required()
+
+    override fun run() {
+        val (intermediate, results) = Zaremba.findHigherRecordsKPrimes(k, vRecord)
+
+        println("Max z(n) = ${intermediate.zMax}")
+        println("Max log(tau(n)) = ${intermediate.logTauMax}, tau(n) = ${intermediate.tauMax}")
+
+        val newRecords = mutableListOf<String>()
+        var checked = 0
+        results.forEach { res ->
+            val result = "primorials=${res.primorials}\tprimes = ${res.primes}\ttau = ${res.tau}\tn = ${res.n}\tz = ${res.z}\tv = ${res.v}"
+            println(result)
+            if (res.v > vRecord) {
+                newRecords.add(result)
+            }
+            checked++
+        }
+
+        println("Checked $checked candidates")
+        if (newRecords.isNotEmpty()) {
+            println("Found new record(s) for v!")
+            newRecords.forEach(::println)
+        }
+    }
+}
+
 class Cli : CliktCommand(
     name = "Zaremba",
     help = "Tool to find z(n) and v(n) record-setters.",
@@ -148,6 +194,7 @@ class Cli : CliktCommand(
 val cli = Cli().subcommands(
     WaterfallCmd(),
     RecordsCmd(),
+    KPrimesCmd(),
     SingleCommand(),
     FactorCmd(),
     LatexCommand(),

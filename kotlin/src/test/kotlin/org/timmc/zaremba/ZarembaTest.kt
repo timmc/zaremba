@@ -2,6 +2,7 @@ package org.timmc.zaremba
 
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 class ZarembaTest {
     @Test
@@ -36,8 +37,8 @@ class ZarembaTest {
 
     @Test
     fun primesToTauTest() {
-        assertEquals(1, Zaremba.primesToTau(emptyList()))
-        assertEquals(20, Zaremba.primesToTau(listOf(1, 1, 4)))
+        assertEquals(1, Zaremba.primesToTau(emptyList()).toInt())
+        assertEquals(20, Zaremba.primesToTau(listOf(1, 1, 4)).toInt())
     }
 
     @Test
@@ -45,13 +46,13 @@ class ZarembaTest {
         assertEquals(
             listOf(
                 Zaremba.RecordSetter(
-                    n = "4", tau = 3,
+                    n = "4", tau = 3.toBigInteger(),
                     z = 0.6931471805599453, isZRecord = true,
                     v = 0.6309297535714574, isVRecord = true,
                     primes = listOf(2), primorials = listOf(2),
                 ),
                 Zaremba.RecordSetter(
-                    n = "6", tau = 4,
+                    n = "6", tau = 4.toBigInteger(),
                     z = 1.0114042647073518, isZRecord = true,
                     v = 0.7295739585136225, isVRecord = true,
                     primes = listOf(1, 1), primorials = listOf(0, 1),
@@ -64,7 +65,7 @@ class ZarembaTest {
         // run -- this will only catch changes in behavior.
         assertEquals(
             Zaremba.RecordSetter(
-                n = "963761198400", tau = 6720,
+                n = "963761198400", tau = 6720.toBigInteger(),
                 z = 14.960783769593887, isZRecord = true,
                 v = 1.6976114329564411, isVRecord = false,
                 primes = listOf(6, 4, 2, 1, 1, 1, 1, 1, 1),
@@ -72,5 +73,18 @@ class ZarembaTest {
             ),
             Zaremba.findRecords(1000000000000.toBigInteger()).last()
         )
+    }
+
+    @Test
+    fun kPrimesFindTest() {
+        // Check that, using an older record for v, we would find a new one
+        val oldRecord = 1.666933568966563
+        val newRecord = 1.7059578102443238
+        val earlier = Zaremba.findHigherRecordsKPrimes(9, oldRecord)
+        assertEquals(newRecord, earlier.second.toList().maxOf { it.v })
+
+        // But using the new record as a bound, we don't find any more
+        val later = Zaremba.findHigherRecordsKPrimes(9, newRecord)
+        assertEquals(0, later.second.count { it.v > newRecord })
     }
 }

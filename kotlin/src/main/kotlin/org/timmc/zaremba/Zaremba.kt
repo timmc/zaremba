@@ -15,9 +15,11 @@
 package org.timmc.zaremba
 
 import java.math.BigInteger
+import kotlin.math.exp
 import kotlin.math.ln
 import kotlin.math.max
 import kotlin.math.pow
+import kotlin.math.roundToLong
 
 object Zaremba {
     /**
@@ -60,13 +62,21 @@ object Zaremba {
      * Given a set of prime exponents, give the number of divisors if they were
      * recomposed.
      */
-    fun primesToTau(exponents: PrimeExp): Long {
-        return exponents.map { it + 1L }.product()
+    fun primesToTau(primeExponents: PrimeExp): BigInteger {
+        return primeExponents.map { BigInteger.ONE + it.toBigInteger() }.product()
+    }
+
+    /**
+     * Given a set of primorial exponents, give the number of divisors if they were
+     * recomposed.
+     */
+    fun primorialsToTau(primorialExponents: PrimorialExp): BigInteger {
+        return primesToTau(Primorials.toPrimes(primorialExponents))
     }
 
     data class RecordSetter(
         val n: String, // JSON doesn't handle BigInteger well
-        val tau: Long,
+        val tau: BigInteger,
         val z: Double,
         val isZRecord: Boolean,
         val v: Double,
@@ -104,5 +114,60 @@ object Zaremba {
                 recordV = max(v, recordV)
             }
         }
+    }
+
+    data class KPrimesIntermediate(
+        val zMax: Double,
+        val logTauMax: Double,
+        val tauMax: BigInteger,
+    )
+
+    data class KPrimesResult(
+        val primorials: PrimorialExp,
+        val primes: PrimeExp,
+        val tau: BigInteger,
+        val n: BigInteger,
+        val z: Double,
+        val v: Double,
+    )
+
+    /**
+     * Compute v(n) for all candidate waterfall numbers with k primes, informed
+     * by a previous record-setting v(n) value. The results will need to be
+     * filtered to see if any are actually record-setters.
+     *
+     * (The intermediate results and non-record-setting results are returned for
+     * testing purposes.)
+     */
+    fun findHigherRecordsKPrimes(k: Int, vRecord: Double): Pair<KPrimesIntermediate, Sequence<KPrimesResult>> {
+        // Get the first k primes, as doubles
+        val kPrimesD = Primes.list.take(k).map(BigInteger::toDouble)
+
+        // First, get an upper bound on z(n) using Weber's lemma. We have to
+        // assume that any and all of the first k primes could be factors, so
+        // instead of being able to check if p|n, we just use p_1 through p_k.
+        val zMax = kPrimesD.map { p -> p/(p - 1.0) }.product() *
+            kPrimesD.sumOf { p -> ln(p)/(p - 1.0) }
+
+        // Since v = z/log(tau), we can use the largest known V and the largest
+        // possible z to compute an upper bound on log tau.
+        val logTauMax = zMax/vRecord
+        val tauMax = exp(logTauMax).roundToLong().toBigInteger()
+
+        // Gather up these intermediate values for printing
+        val intermediate = KPrimesIntermediate(zMax, logTauMax, tauMax)
+
+        val results = Waterfall.forKPrimesAndMaxTau(k, tauMax).map { n ->
+            val primeExponents = Primorials.toPrimes(n.primorialExponents)
+            val tau = primesToTau(primeExponents)
+            val z = z(n.value, primeExponents)
+            val v = z / ln(tau.toDouble())
+            KPrimesResult(
+                primorials = n.primorialExponents, primes = primeExponents,
+                tau = tau, n = n.value, z = z, v = v,
+            )
+        }
+
+        return intermediate to results
     }
 }

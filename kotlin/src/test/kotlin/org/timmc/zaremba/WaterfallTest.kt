@@ -2,8 +2,23 @@ package org.timmc.zaremba
 
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFails
+import kotlin.test.assertTrue
 
 class WaterfallSequenceTest {
+    @Test
+    fun waterfallAssertionTest() {
+        Waterfall.assertWaterfall(emptyList())
+        Waterfall.assertWaterfall(listOf(4))
+        Waterfall.assertWaterfall(listOf(4, 4, 4))
+        Waterfall.assertWaterfall(listOf(4, 1, 1))
+
+        assertFails {
+            Waterfall.assertWaterfall(listOf(1, 1, 4))
+            Waterfall.assertWaterfall(listOf(2, 5, 2))
+        }
+    }
+
     @Test
     fun waterfallFindTest() {
         // From https://oeis.org/A025487
@@ -16,6 +31,29 @@ class WaterfallSequenceTest {
                 2304, 2310
             ).map { it.toBigInteger() },
             Waterfall.findUpTo(2400.toBigInteger()).map { it.value }.toList()
+        )
+    }
+
+    @Test
+    fun kPrimesTest() {
+        // Too small a tau
+        assertEquals(
+            emptyList(),
+            Waterfall.forKPrimesAndMaxTau(3, 2.toBigInteger()).toList()
+        )
+
+        val for13 = Waterfall.forKPrimesAndMaxTau(13, 706631.toBigInteger()).toList()
+        assertEquals(2070, for13.size)
+        for13.forEach {
+            assertEquals(13, it.primorialExponents.size)
+            assertTrue(it.primorialExponents.last() > 0)
+        }
+
+        // Can return elements with exactly this tau, but not more than (≤)
+        assertEquals(
+            setOf(30, 60, 120, 180, 240), // tau(240) = 20
+            Waterfall.forKPrimesAndMaxTau(3, 20.toBigInteger())
+                .map { it.value.toInt() }.toSet()
         )
     }
 
