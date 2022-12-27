@@ -173,10 +173,9 @@ class KPrimesCmd : CliktCommand(
             checked++
         }
 
-        println("Checked $checked candidates")
+        println("Checked $checked candidates; ${newRecords.size} new records found.")
         if (newRecords.isNotEmpty()) {
-            println("Found new record(s) for v!")
-            newRecords.forEach(::println)
+            newRecords.forEach { println("New record! $it") }
         }
     }
 }
