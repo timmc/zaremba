@@ -180,6 +180,23 @@ class KPrimesCmd : CliktCommand(
     }
 }
 
+class MaxVCmd : CliktCommand(
+    name = "max-v",
+    help = """
+        Performs a search for the highest possible v(n) value.
+
+        This is done using k-primes bootstrapping. The bootstrapping is backed
+        by proofs, but the halting condition used in the code is not (although
+        it searches beyond k=29, so we're OK anyway.)
+    """.trimIndent()
+) {
+    override fun run() {
+        for (v in Zaremba.maxVByBootstrapping()) {
+            println(v)
+        }
+    }
+}
+
 class Cli : CliktCommand(
     name = "Zaremba",
     help = "Tool to find z(n) and v(n) record-setters.",
@@ -194,6 +211,7 @@ val cli = Cli().subcommands(
     WaterfallCmd(),
     RecordsCmd(),
     KPrimesCmd(),
+    MaxVCmd(),
     SingleCommand(),
     FactorCmd(),
     LatexCommand(),

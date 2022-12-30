@@ -24,6 +24,12 @@ Use k-primes/max-tau approach instead, with highest known v(n) record as input:
 for k in {1..35}; do echo "Running with k=$k"; java -jar target/zaremba-*-jar-with-dependencies.jar k-primes --V 1.7059578102443238 --k $k; echo; echo; done | tee kprimes.txt
 ```
 
+Fully automatic bootstrapping of finding the highest v(n), using k-primes:
+
+```bash
+java -jar target/zaremba-*-jar-with-dependencies.jar max-v | tee bootstrapping.txt
+```
+
 TODO:
 
 - Parallelize

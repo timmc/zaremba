@@ -120,6 +120,7 @@ object Zaremba {
         val zMax: Double,
         val logTauMax: Double,
         val tauMax: BigInteger,
+        val tauMin: BigInteger,
     )
 
     data class KPrimesResult(
@@ -154,8 +155,13 @@ object Zaremba {
         val logTauMax = zMax/vRecord
         val tauMax = exp(logTauMax).roundToLong().toBigInteger()
 
+        // It's also useful to know what the *smallest* tau could be, since this
+        // tells us what the *largest* v could be. If this is too large then it
+        // probably isn't worth looking at higher primes.
+        val tauMin = primesToTau(List(k) { 1 })
+
         // Gather up these intermediate values for printing
-        val intermediate = KPrimesIntermediate(zMax, logTauMax, tauMax)
+        val intermediate = KPrimesIntermediate(zMax, logTauMax, tauMax, tauMin)
 
         val results = Waterfall.forKPrimesAndMaxTau(k, tauMax).map { n ->
             val primeExponents = Primorials.toPrimes(n.primorialExponents)
@@ -169,5 +175,58 @@ object Zaremba {
         }
 
         return intermediate to results
+    }
+
+    /**
+     * Yield successively larger record-setters for v(n) until the largest is
+     * reached. This is an incomplete list of record-setters.
+     */
+    fun maxVByBootstrapping(): Sequence<Double> {
+        return sequence {
+            // Start with known value for v(4)
+            var vRecord = 0.6309297535714574
+            println("Starting bootstrap with v(4) = $vRecord")
+
+            // Get higher and higher V values until we stop finding them
+            while (true) {
+                // For the current best record, try higher and higher prime
+                // counts k until they are incapable of producing a new record
+                // (or until a new record is found).
+                var k = 1
+                while (true) {
+                    println("  Searching for next record with $k primes")
+                    val (intermediate, candidates) = findHigherRecordsKPrimes(k, vRecord)
+
+                    // We could just stop at the first new record-setter, but
+                    // might as well sort and find the highest one in these results.
+                    val newRecord = candidates.filter { it.v > vRecord }.sortedBy { it.v }.lastOrNull()
+                    println("    Checked ${candidates.count()} candidates, with max tau = ${intermediate.tauMax}")
+
+                    if (newRecord != null) {
+                        println("    Found new record! v=${newRecord.v}\tn=${newRecord.n}\tz=${newRecord.z}\ttau=${newRecord.tau}")
+                        vRecord = newRecord.v
+                        yield(newRecord.v)
+                        break
+                    }
+
+                    // We didn't find a result on this k, so check to see if it
+                    // would even be possible. If not, a higher k won't help,
+                    // and we're done.
+                    //
+                    // NOTA BENE: This is not yet proven to work as a halting
+                    //  condition. We are still having to hand-check the halting
+                    //  case. In practice though, it halts at k=35, well above
+                    //  the k=29 that we have established by hand.
+                    val ltMin = ln(intermediate.tauMin.toDouble())
+                    val vMax = intermediate.zMax / ltMin
+                    if (vMax < vRecord) {
+                        println("    Stopping: z-max/log(min-tau) = ${intermediate.zMax}/$ltMin < $vRecord = record-v")
+                        return@sequence
+                    }
+
+                    k++
+                }
+            }
+        }
     }
 }

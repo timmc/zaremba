@@ -1,0 +1,180 @@
+Starting bootstrap with v(4) = 0.6309297535714574
+  Searching for next record with 1 primes
+    Checked 8 candidates, with max tau = 9
+    Found new record! v=0.6998494068692637	n=16	z=1.126364168409911	tau=5
+0.6998494068692637
+  Searching for next record with 1 primes
+    Checked 6 candidates, with max tau = 7
+  Searching for next record with 2 primes
+    Checked 366 candidates, with max tau = 206
+    Found new record! v=1.0374639750240322	n=144	z=2.8095045262001284	tau=15
+1.0374639750240322
+  Searching for next record with 1 primes
+    Checked 3 candidates, with max tau = 4
+  Searching for next record with 2 primes
+    Checked 37 candidates, with max tau = 36
+  Searching for next record with 3 primes
+    Checked 558 candidates, with max tau = 382
+    Found new record! v=1.2564884114705022	n=4320	z=4.864119208678658	tau=48
+1.2564884114705022
+  Searching for next record with 1 primes
+    Checked 2 candidates, with max tau = 3
+  Searching for next record with 2 primes
+    Checked 13 candidates, with max tau = 19
+  Searching for next record with 3 primes
+    Checked 120 candidates, with max tau = 135
+  Searching for next record with 4 primes
+    Checked 962 candidates, with max tau = 950
+    Found new record! v=1.437297096865331	n=151200	z=7.143098227443297	tau=144
+1.437297096865331
+  Searching for next record with 1 primes
+    Checked 2 candidates, with max tau = 3
+  Searching for next record with 2 primes
+    Checked 7 candidates, with max tau = 13
+  Searching for next record with 3 primes
+    Checked 47 candidates, with max tau = 73
+  Searching for next record with 4 primes
+    Checked 260 candidates, with max tau = 401
+  Searching for next record with 5 primes
+    Checked 844 candidates, with max tau = 1630
+    Found new record! v=1.5351507641093542	n=1663200	z=8.693498108201773	tau=288
+1.5351507641093542
+  Searching for next record with 1 primes
+    Checked 1 candidates, with max tau = 2
+  Searching for next record with 2 primes
+    Checked 5 candidates, with max tau = 11
+  Searching for next record with 3 primes
+    Checked 30 candidates, with max tau = 56
+  Searching for next record with 4 primes
+    Checked 139 candidates, with max tau = 274
+  Searching for next record with 5 primes
+    Checked 401 candidates, with max tau = 1017
+  Searching for next record with 6 primes
+    Checked 1075 candidates, with max tau = 3743
+    Found new record! v=1.6129194210253004	n=21621600	z=10.251889488064094	tau=576
+1.6129194210253004
+  Searching for next record with 1 primes
+    Checked 1 candidates, with max tau = 2
+  Searching for next record with 2 primes
+    Checked 5 candidates, with max tau = 10
+  Searching for next record with 3 primes
+    Checked 20 candidates, with max tau = 46
+  Searching for next record with 4 primes
+    Checked 88 candidates, with max tau = 209
+  Searching for next record with 5 primes
+    Checked 235 candidates, with max tau = 728
+  Searching for next record with 6 primes
+    Checked 572 candidates, with max tau = 2517
+  Searching for next record with 7 primes
+    Checked 1109 candidates, with max tau = 7544
+    Found new record! v=1.6546758215862947	n=367567200	z=11.664231546026167	tau=1152
+1.6546758215862947
+  Searching for next record with 1 primes
+    Checked 1 candidates, with max tau = 2
+  Searching for next record with 2 primes
+    Checked 5 candidates, with max tau = 10
+  Searching for next record with 3 primes
+    Checked 18 candidates, with max tau = 42
+  Searching for next record with 4 primes
+    Checked 71 candidates, with max tau = 182
+  Searching for next record with 5 primes
+    Checked 176 candidates, with max tau = 617
+  Searching for next record with 6 primes
+    Checked 422 candidates, with max tau = 2066
+  Searching for next record with 7 primes
+    Checked 773 candidates, with max tau = 6022
+  Searching for next record with 8 primes
+    Checked 1420 candidates, with max tau = 17409
+    Found new record! v=1.6887437164315757	n=6983776800	z=13.07493276442853	tau=2304
+1.6887437164315757
+  Searching for next record with 1 primes
+    Checked 1 candidates, with max tau = 2
+  Searching for next record with 2 primes
+    Checked 4 candidates, with max tau = 9
+  Searching for next record with 3 primes
+    Checked 15 candidates, with max tau = 39
+  Searching for next record with 4 primes
+    Checked 60 candidates, with max tau = 164
+  Searching for next record with 5 primes
+    Checked 143 candidates, with max tau = 542
+  Searching for next record with 6 primes
+    Checked 327 candidates, with max tau = 1771
+  Searching for next record with 7 primes
+    Checked 586 candidates, with max tau = 5052
+  Searching for next record with 8 primes
+    Checked 1025 candidates, with max tau = 14296
+  Searching for next record with 9 primes
+    Checked 1575 candidates, with max tau = 36996
+    Found new record! v=1.7059578102443238	n=321253732800	z=14.653665601698933	tau=5376
+1.7059578102443238
+  Searching for next record with 1 primes
+    Checked 1 candidates, with max tau = 2
+  Searching for next record with 2 primes
+    Checked 4 candidates, with max tau = 9
+  Searching for next record with 3 primes
+    Checked 15 candidates, with max tau = 37
+  Searching for next record with 4 primes
+    Checked 54 candidates, with max tau = 156
+  Searching for next record with 5 primes
+    Checked 128 candidates, with max tau = 508
+  Searching for next record with 6 primes
+    Checked 289 candidates, with max tau = 1642
+  Searching for next record with 7 primes
+    Checked 518 candidates, with max tau = 4636
+  Searching for next record with 8 primes
+    Checked 891 candidates, with max tau = 12981
+  Searching for next record with 9 primes
+    Checked 1311 candidates, with max tau = 33271
+  Searching for next record with 10 primes
+    Checked 1608 candidates, with max tau = 75404
+  Searching for next record with 11 primes
+    Checked 1943 candidates, with max tau = 170067
+  Searching for next record with 12 primes
+    Checked 2063 candidates, with max tau = 352866
+  Searching for next record with 13 primes
+    Checked 2070 candidates, with max tau = 706631
+  Searching for next record with 14 primes
+    Checked 2063 candidates, with max tau = 1410343
+  Searching for next record with 15 primes
+    Checked 1949 candidates, with max tau = 2732909
+  Searching for next record with 16 primes
+    Checked 1733 candidates, with max tau = 5049358
+  Searching for next record with 17 primes
+    Checked 1442 candidates, with max tau = 8965815
+  Searching for next record with 18 primes
+    Checked 1173 candidates, with max tau = 15886120
+  Searching for next record with 19 primes
+    Checked 914 candidates, with max tau = 27242258
+  Searching for next record with 20 primes
+    Checked 693 candidates, with max tau = 46000822
+  Searching for next record with 21 primes
+    Checked 528 candidates, with max tau = 77543479
+  Searching for next record with 22 primes
+    Checked 392 candidates, with max tau = 127433497
+  Searching for next record with 23 primes
+    Checked 270 candidates, with max tau = 206873809
+  Searching for next record with 24 primes
+    Checked 184 candidates, with max tau = 328862204
+  Searching for next record with 25 primes
+    Checked 120 candidates, with max tau = 508815915
+  Searching for next record with 26 primes
+    Checked 75 candidates, with max tau = 780283667
+  Searching for next record with 27 primes
+    Checked 45 candidates, with max tau = 1195326786
+  Searching for next record with 28 primes
+    Checked 30 candidates, with max tau = 1816148752
+  Searching for next record with 29 primes
+    Checked 18 candidates, with max tau = 2756663569
+  Searching for next record with 30 primes
+    Checked 10 candidates, with max tau = 4152385467
+  Searching for next record with 31 primes
+    Checked 5 candidates, with max tau = 6033764201
+  Searching for next record with 32 primes
+    Checked 3 candidates, with max tau = 8715897205
+  Searching for next record with 33 primes
+    Checked 1 candidates, with max tau = 12459620815
+  Searching for next record with 34 primes
+    Checked 1 candidates, with max tau = 17799154051
+  Searching for next record with 35 primes
+    Checked 0 candidates, with max tau = 24972952954
+    Stopping: z-max/log(min-tau) = 40.84243691810152/24.260151319598087 < 1.7059578102443238 = record-v
