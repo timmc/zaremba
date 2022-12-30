@@ -135,34 +135,64 @@ object Zaremba {
     /**
      * Compute v(n) for all candidate waterfall numbers with k primes, informed
      * by a previous record-setting v(n) value. The results will need to be
-     * filtered to see if any are actually record-setters.
+     * filtered to see if any are actually new record-setters.
      *
      * (The intermediate results and non-record-setting results are returned for
      * testing purposes.)
+     *
+     * By calling this with successively larger values of k, until some halting
+     * condition is reached, we can search for all possible higher v(n) values
+     * exhaustively.
      */
-    fun findHigherRecordsKPrimes(k: Int, vRecord: Double): Pair<KPrimesIntermediate, Sequence<KPrimesResult>> {
+    fun searchVRecordKPrimes(k: Int, vRecord: Double): Pair<KPrimesIntermediate, Sequence<KPrimesResult>> {
+        // We know that there's an existing record-setter V_a (here, vRecord.)
+        // We're seeking a larger one, V_b > V_a. We then posit that in
+        // v(n) = V_b, n has a certain number of distinct primes, k.
+        //
+        // Given k, we can find an upper bound on the z(n) that would be part of
+        // V_b's calculation (z/log tau). The maximum value of V_b is limited by
+        // the maximum value of this z(n).
+        //
+        // So, our first step is to find this value, which we'll call zMax:
+
         // Get the first k primes, as doubles
         val kPrimesD = Primes.list.take(k).map(BigInteger::toDouble)
-
-        // First, get an upper bound on z(n) using Weber's lemma. We have to
+        // We can get an upper bound on z(n) using Weber's lemma. We have to
         // assume that any and all of the first k primes could be factors, so
-        // instead of being able to check if p|n, we just use p_1 through p_k.
+        // instead of being able to check if p|n, we just use all of p_1 through
+        // p_k. (More below on why we err in this direction.)
         val zMax = kPrimesD.map { p -> p/(p - 1.0) }.product() *
             kPrimesD.sumOf { p -> ln(p)/(p - 1.0) }
 
-        // Since v = z/log(tau), we can use the largest known V and the largest
-        // possible z to compute an upper bound on log tau.
+        // The other part of the calculation is log(tau(n)). For a given k,
+        // there are an infinite number of possible waterfall numbers, and
+        // values for tau. We cannot enumerate them.
+        //
+        // However, as tau (really log(tau), but same logic) increases in the
+        // denominator, v(n) decreases/ At some point we would reach the
+        // breakeven point of v(n) = V_a, after which we would no longer be able
+        // to set a new record.
+        //
+        // The larger z(n) is, the larger tau can rise without hitting the
+        // breakeven, so it's beneficial to err on the side of a larger z(n).
+        // That's what allowed us to use *all* the primes through p_k in the
+        // zMax calculation above.
+        //
+        // So the breakeven point is V_a = zMax/log(tau); solve for tau to get
+        // tauMax. Any new record-setter must have a tau no larger than this.
         val logTauMax = zMax/vRecord
         val tauMax = exp(logTauMax).roundToLong().toBigInteger()
 
         // It's also useful to know what the *smallest* tau could be, since this
-        // tells us what the *largest* v could be. If this is too large then it
-        // probably isn't worth looking at higher primes.
+        // tells us what the *largest* v could be. If tauMin is too large then
+        // it probably isn't worth looking at higher primes.
         val tauMin = primesToTau(List(k) { 1 })
 
         // Gather up these intermediate values for printing
         val intermediate = KPrimesIntermediate(zMax, logTauMax, tauMax, tauMin)
 
+        // Now we can generate and check all waterfall numbers with a
+        // tau(n) ≤ tauMax. This is a relatively tractable set to enumerate.
         val results = Waterfall.forKPrimesAndMaxTau(k, tauMax).map { n ->
             val primeExponents = Primorials.toPrimes(n.primorialExponents)
             val tau = primesToTau(primeExponents)
@@ -195,7 +225,7 @@ object Zaremba {
                 var k = 1
                 while (true) {
                     println("  Searching for next record with $k primes")
-                    val (intermediate, candidates) = findHigherRecordsKPrimes(k, vRecord)
+                    val (intermediate, candidates) = searchVRecordKPrimes(k, vRecord)
 
                     // We could just stop at the first new record-setter, but
                     // might as well sort and find the highest one in these results.

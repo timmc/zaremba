@@ -2,7 +2,6 @@ package org.timmc.zaremba
 
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
 class ZarembaTest {
     @Test
@@ -80,11 +79,11 @@ class ZarembaTest {
         // Check that, using an older record for v, we would find a new one
         val oldRecord = 1.666933568966563
         val newRecord = 1.7059578102443238
-        val earlier = Zaremba.findHigherRecordsKPrimes(9, oldRecord)
+        val earlier = Zaremba.searchVRecordKPrimes(9, oldRecord)
         assertEquals(newRecord, earlier.second.toList().maxOf { it.v })
 
         // But using the new record as a bound, we don't find any more
-        val later = Zaremba.findHigherRecordsKPrimes(9, newRecord)
+        val later = Zaremba.searchVRecordKPrimes(9, newRecord)
         assertEquals(0, later.second.count { it.v > newRecord })
     }
 }

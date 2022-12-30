@@ -157,7 +157,7 @@ class KPrimesCmd : CliktCommand(
     ).double().required()
 
     override fun run() {
-        val (intermediate, results) = Zaremba.findHigherRecordsKPrimes(k, vRecord)
+        val (intermediate, results) = Zaremba.searchVRecordKPrimes(k, vRecord)
 
         println("Max z(n) = ${intermediate.zMax}")
         println("Max log(tau(n)) = ${intermediate.logTauMax}, tau(n) = ${intermediate.tauMax}")
